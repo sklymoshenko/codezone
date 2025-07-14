@@ -1,0 +1,44 @@
+{
+  "name": "codezone",
+  "version": "1.0.0",
+  "author": "Stanislav Klymoshenko",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "dev:tauri": "tauri dev",
+    "build:tauri": "tauri build",
+    "preview": "vite preview",
+    "prettier": "prettier src -c",
+    "prettier:fix": "prettier src -w",
+    "eslint": "eslint src",
+    "eslint:fix": "eslint src --fix",
+    "tauri": "tauri"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "9.31.0",
+    "@ianvs/prettier-plugin-sort-imports": "4.5.1",
+    "@tailwindcss/vite": "4.1.11",
+    "@types/node": "24.0.13",
+    "eslint": "9.31.0",
+    "eslint-config-prettier": "10.1.5",
+    "lightningcss": "1.30.1",
+    "prettier": "3.6.2",
+    "prettier-eslint-cli": "8.0.1",
+    "prettier-plugin-tailwindcss": "0.6.14",
+    "tailwindcss": "4.1.11",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.36.0",
+    "vite": "6.3.5",
+    "vite-plugin-solid": "2.11.7",
+    "vite-tsconfig-paths": "5.1.4"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.6.0",
+    "@tauri-apps/cli": "2.6.2",
+    "@types/highlight.js": "^10.1.0",
+    "highlight.js": "^11.11.1",
+    "solid-js": "1.9.7"
+  }
+}
