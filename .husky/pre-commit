@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run frontend tests and linting
+cd frontend
+
+# Run lint-staged for staged files
+bun x lint-staged
+
+# Run tests
+bun run test:run
+
+# Run Go tests (including stable JavaScript executor tests)
+cd ../
+go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup" -timeout 30s 
