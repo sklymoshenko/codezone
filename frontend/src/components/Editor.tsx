@@ -5,7 +5,11 @@ import TitleBar from './TitleBar'
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import { locStorage, isValidLanguage } from '../utils/locStorage'
+import { debounce } from '../utils/debounce'
+import { useUndo } from '../utils/useUndo'
 import { Environment } from 'wailsjs/runtime'
+import { ExecuteCode, RefreshExecutor } from 'wailsjs/go/main/App'
+import type { executor } from 'wailsjs/go/models'
 import type { EnvironmentInfo } from 'wailsjs/runtime'
 import type { Language } from '../types'
 
@@ -36,13 +40,63 @@ const Editor: Component = () => {
 
   const [language, setLanguage] = createSignal<Language>(initialLang)
   const [code, setCode] = createSignal<string>(getCodeForLang(initialLang))
+  const [executionResult, setExecutionResult] = createSignal<executor.ExecutionResult | null>(null)
+  const [isExecuting, setIsExecuting] = createSignal(false)
+
+  // Initialize undo system
+  const { undo, redo, canUndo, canRedo, recordChange, clear } = useUndo(code, setCode)
+
   let codeRef: HTMLElement | undefined
   let preRef: HTMLPreElement | undefined
+  let textareaRef: HTMLTextAreaElement | undefined
+  
+  // Execute initial code on component mount
+  setTimeout(() => execute(code(), language()), 0)
+
+  // This function sends the code to the backend for execution.
+  const execute = async (codeToExecute: string, lang: Language) => {
+    // Don't execute if code is empty or language is not JS
+    if (!codeToExecute.trim() || lang !== 'javascript') {
+      setExecutionResult(null);
+      return;
+    }
+
+    setIsExecuting(true);
+    try {
+      const result = await ExecuteCode({
+        code: codeToExecute,
+        language: lang,
+        timeout: 0, // 0 tells the backend to use its default timeout.
+      });
+      setExecutionResult(result);
+    } catch (e: any) {
+      // We can safely ignore the "executor is busy" error.
+      // For other errors, we should display them.
+      if (typeof e === 'string' && e.includes('executor is busy')) {
+        // It's expected that some requests will be discarded. Do nothing.
+      } else {
+        setExecutionResult({
+          output: '',
+          error: e.toString(),
+          exitCode: 1,
+          duration: 0,
+          durationString: '0s',
+          language: lang,
+        });
+      }
+    } finally {
+      setIsExecuting(false);
+    }
+  }
+
+  // Create a debounced version of the execute function.
+  const debouncedExecute = debounce(execute, 100);
 
   createEffect(async () => {
     const lang = language()
     const currentCode = code()
 
+    // Dynamically load language highlighters
     try {
       if (lang === 'go' && !hljs.getLanguage('go')) {
         const module = await import('highlight.js/lib/languages/go')
@@ -54,6 +108,7 @@ const Editor: Component = () => {
         hljs.registerLanguage('postgres', module.default)
       }
 
+      // Highlight the code
       if (codeRef) {
         const highlighted = hljs.highlight(currentCode, {
           language: lang,
@@ -71,15 +126,29 @@ const Editor: Component = () => {
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang)
-    setCode(getCodeForLang(lang))
+    const newCode = getCodeForLang(lang)
+    setCode(newCode)
     locStorage.set('selectedLanguage', lang)
+    // Clear undo history when switching languages
+    clear()
+    // Execute the code for the new language immediately
+    execute(newCode, lang);
   }
 
   const handleInput = (e: Event) => {
     const target = e.target as HTMLTextAreaElement
-    const currentCode = target.value
-    setCode(currentCode)
-    locStorage.set(`code-${language()}`, currentCode)
+    const oldCode = code()
+    const newCode = target.value
+    const cursorPos = target.selectionStart
+    
+    // Record the change for undo system
+    recordChange(oldCode, newCode, cursorPos)
+    
+    // Update state and storage immediately on input
+    setCode(newCode)
+    locStorage.set(`code-${language()}`, newCode)
+    // Trigger the debounced execution
+    debouncedExecute(newCode, language());
   }
 
   const handleScroll = (e: Event) => {
@@ -91,77 +160,129 @@ const Editor: Component = () => {
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Handle undo/redo shortcuts
+    if ((e.ctrlKey || e.metaKey)) {
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+        return
+      }
+      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        e.preventDefault()
+        redo()
+        return
+      }
+    }
+
     if (e.key === 'Tab') {
       e.preventDefault()
       const target = e.target as HTMLTextAreaElement
       const start = target.selectionStart
       const end = target.selectionEnd
-      const newCode = `${code().substring(0, start)}  ${code().substring(end)}`
+      const oldCode = code()
+      const newCode = `${oldCode.substring(0, start)}  ${oldCode.substring(end)}`
+      
+      // Record the change for undo
+      recordChange(oldCode, newCode, start + 2)
+      
       setCode(newCode)
+      locStorage.set(`code-${language()}`, newCode)
 
-      //
       // FIXME: we need this because otherwise cursor will be at the end of the line
-      //
       target.selectionStart = target.selectionEnd = start + 2
     }
   }
 
+  const handleReset = async () => {
+    try {
+      await RefreshExecutor(language());
+      setExecutionResult(null); // Clear the output panel
+      // Re-run the current code in the new clean environment
+      execute(code(), language());
+    } catch (e) {
+      console.error("Failed to reset environment:", e);
+    }
+  }
+
+  const hasResult = () => executionResult() !== null;
+
   return (
-    <div class="flex h-full w-full flex-col">
+    <div class="flex h-screen w-full flex-col bg-[#1f2937]">
       <Show when={!env.loading && env()?.platform === 'linux'}>
         <TitleBar />
       </Show>
-      <div class="relative flex-grow overflow-hidden">
-        <div class="absolute top-4 right-4 z-10 flex space-x-2">
-          <LangButton
-            onClick={() => handleLanguageChange('javascript')}
-            isActive={language() === 'javascript'}
-            icon={<SiJavascript size={24} />}
-            activeClasses="bg-yellow-400 text-black"
-            hoverClasses="hover:bg-yellow-400 hover:text-black"
-          />
-          <LangButton
-            onClick={() => handleLanguageChange('go')}
-            isActive={language() === 'go'}
-            icon={<SiGo size={24} />}
-            activeClasses="bg-cyan-400 text-white"
-            hoverClasses="hover:bg-cyan-400"
-          />
-          <LangButton
-            onClick={() => handleLanguageChange('postgres')}
-            isActive={language() === 'postgres'}
-            icon={<SiPostgresql size={24} />}
-            activeClasses="bg-blue-600 text-white"
-            hoverClasses="hover:bg-blue-600"
+      
+      <div class="flex-grow flex flex-col overflow-y-auto" style={{ height: 'calc(100vh - 2rem)' }}>
+        {/* Top Panel: Editor */}
+        <div class="relative flex-grow overflow-hidden" style={{ height: hasResult() ? '60%' : '100%' }}>
+          <div class="absolute top-4 right-4 z-10 flex space-x-2">
+            <LangButton
+              onClick={() => handleLanguageChange('javascript')}
+              isActive={language() === 'javascript'}
+              icon={<SiJavascript size={24} />}
+              activeClasses="bg-yellow-400 text-black"
+              hoverClasses="hover:bg-yellow-400 hover:text-black"
+            />
+            <LangButton
+              onClick={() => handleLanguageChange('go')}
+              isActive={language() === 'go'}
+              icon={<SiGo size={24} />}
+              activeClasses="bg-cyan-400 text-white"
+              hoverClasses="hover:bg-cyan-400"
+            />
+            <LangButton
+              onClick={() => handleLanguageChange('postgres')}
+              isActive={language() === 'postgres'}
+              icon={<SiPostgresql size={24} />}
+              activeClasses="bg-blue-600 text-white"
+              hoverClasses="hover:bg-blue-600"
+            />
+          </div>
+          <pre
+            ref={preRef}
+            class="font-mono text-base leading-normal m-0 h-full w-full overflow-auto bg-[#111827]"
+            style={{
+              'tab-size': '2',
+              '-moz-tab-size': '2',
+            }}
+          >
+            <code
+              ref={codeRef}
+              class={`language-${language()} block h-full w-full p-4`}
+              style={{ 'white-space': 'pre-wrap' }}
+            />
+          </pre>
+          <textarea
+            ref={textareaRef}
+            value={code()}
+            onInput={handleInput}
+            onScroll={handleScroll}
+            onKeyDown={handleKeyDown}
+            spellcheck={false}
+            class="hide-scrollbar absolute top-0 left-0 h-full w-full resize-none border-none bg-transparent p-4 font-mono text-base leading-normal text-transparent caret-white outline-none"
+            style={{
+              'white-space': 'pre-wrap',
+              'tab-size': '2',
+              '-moz-tab-size': '2',
+            }}
           />
         </div>
-        <pre
-          ref={preRef}
-          class="font-mono text-base leading-normal m-0 h-full w-full overflow-auto"
-          style={{
-            'tab-size': '2',
-            '-moz-tab-size': '2',
-          }}
-        >
-          <code
-            ref={codeRef}
-            class={`language-${language()} block h-full w-full p-4`}
-            style={{ 'white-space': 'pre-wrap' }}
-          />
-        </pre>
-        <textarea
-          value={code()}
-          onInput={handleInput}
-          onScroll={handleScroll}
-          onKeyDown={handleKeyDown}
-          spellcheck={false}
-          class="hide-scrollbar absolute top-0 left-0 h-full w-full resize-none border-none bg-transparent p-4 font-mono text-base leading-normal text-transparent caret-white outline-none"
-          style={{
-            'white-space': 'pre-wrap',
-            'tab-size': '2',
-            '-moz-tab-size': '2',
-          }}
-        />
+        {/* Bottom Panel: Output */}
+        <Show when={hasResult()}>
+          <div class="flex-shrink-0 bg-[#0d1117] border-t-2 border-gray-700" style={{ height: '40%' }}>
+            <div class="p-2 text-sm text-gray-400 border-b border-gray-700">
+              {isExecuting() ? 'Executing...' : `Output (took ${executionResult()?.durationString})`}
+            </div>
+            <div class="font-mono text-sm overflow-auto px-2">
+              <Show when={executionResult()?.output}>
+                <pre class="text-gray-200 whitespace-pre-wrap">{executionResult()?.output}</pre>
+              </Show>
+              <Show when={executionResult()?.error}>
+                <pre class="text-red-400 whitespace-pre-wrap">{executionResult()?.error}</pre>
+              </Show>
+            </div>
+          </div>
+        </Show>
       </div>
     </div>
   )

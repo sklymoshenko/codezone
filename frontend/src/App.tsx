@@ -3,7 +3,7 @@ import type { Component } from 'solid-js'
 
 const App: Component = () => {
   return (
-    <div class="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+    <div class="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white overflow-hidden">
       <Main />
     </div>
   )
