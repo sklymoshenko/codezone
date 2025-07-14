@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "MyApp",
+  "productName": "CodeZone",
   "version": "2.0.0",
-  "identifier": "com.tauri-solid-ts-tailwind-vite.dev",
+  "identifier": "com.codezone.app",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -13,9 +13,10 @@
     "windows": [
       {
         "title": "app",
-        "width": 800,
-        "height": 600,
-        "resizable": true
+        "width": 1280,
+        "height": 768,
+        "resizable": true,
+        "decorations": true
       }
     ],
     "security": {
