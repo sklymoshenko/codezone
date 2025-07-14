@@ -1,95 +1,68 @@
-# [Tauri](https://tauri.app) + [Solid](https://solidjs.com) + [Tailwind CSS](https://tailwindcss.com) + [TypeScript](https://typescriptlang.org) + [Vite](https://vitejs.dev) Starter
+# CodeZone Playground
 
-[//]:[![Stars](https://img.shields.io/github/stars/AR10Dev/tauri-solid-ts-tailwind-vite?style=social)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Rust](https://img.shields.io/badge/Rust-black?style=for-the-badge&logo=rust&logoColor=#E57324)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Typescript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Solid JS](https://img.shields.io/badge/SolidJS-2C4F7C?style=for-the-badge&logo=solid&logoColor=white)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![Tauri](https://img.shields.io/badge/Tauri-24C8D8?style=for-the-badge&logo=tauri&logoColor=white)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite)
+CodeZone is a versatile desktop code playground for JavaScript/TypeScript, Go, and PostgreSQL, designed for developers who need to quickly test code snippets and database queries in a sandboxed environment.
 
-A starter template for [Tauri](https://tauri.app) + [Solid](https://solidjs.com) App that comes preconfigured with [Vite](https://vitejs.dev),
-[TypeScript](https://typescriptlang.org), [Tailwind CSS](https://tailwindcss.com), [ESLint](https://eslint.org), [Prettier](https://prettier.io) and HMR (Hot Module Replacement).
+## ✨ Features
 
-## Features
+- **Multi-Language Support**: Write and execute code in JavaScript, TypeScript, and Go.
+- **PostgreSQL Query Runner**: Connect to your PostgreSQL database to run queries and view results directly within the app.
+- **Real-time Syntax Highlighting**: Enjoy beautiful and accurate syntax highlighting that updates as you type, powered by `highlight.js`.
+- **Modern Editor Experience**: A clean, focused editor with essential features like proper tab handling (2 spaces).
+- **Desktop Application**: Built with Tauri for a lightweight, fast, and cross-platform native experience on Windows, macOS, and Linux.
 
-- 🤩 [Tauri](https://tauri.app) - Build smaller, faster, and more secure desktop and mobile applications with a web frontend.
+## 🛠️ Built With
 
-- ⚡️ [Solid](https://solidjs.com) & [Vite](https://vitejs.dev) - Simple and performant reactivity for building user interfaces.
+This project is built with a modern tech stack, focusing on performance and developer experience.
 
-- 🎨 [Tailwind CSS](https://tailwindcss.com) - A utility-first CSS framework for rapid UI development.
+*   **[Tauri](https://tauri.app/)**: Backend and windowing
+*   **[SolidJS](https://www.solidjs.com/)**: Frontend framework
+*   **[Vite](https://vitejs.dev/)**: Frontend tooling
+*   **[TypeScript](https://www.typescriptlang.org/)**: Language for the frontend
+*   **[Rust](https://www.rust-lang.org/)**: Language for the backend
+*   **[Tailwind CSS](https://tailwindcss.com/)**: UI styling
+*   **[highlight.js](https://highlightjs.org/)**: Syntax highlighting
+*   **[Bun](https://bun.sh/)**: JavaScript runtime and toolkit
 
-- 💪 [TypeScript](https://typescriptlang.org) - it's JavaScript with syntax for types.
+## 🚀 Getting Started
 
-- 👌 [ESLint](https://eslint.org) + [Prettier](https://prettier.io) - ESLint find problems in your code and Prettier format your code for an easy life.
+To get a local copy up and running, follow these simple steps.
 
-<br>
+### Prerequisites
 
-## Getting started
+Make sure you have the necessary dependencies installed for Tauri development. You can follow the official guide for your operating system:
+[**Tauri Prerequisites**](https://tauri.app/v1/guides/getting-started/prerequisites)
 
-### GitHub Template
+You will also need **Bun**:
+*   [bun.sh](https://bun.sh/)
 
-[Create a repo from this template on GitHub](https://github.com/AR10Dev/tauri-solid-ts-tailwind-vite/generate)
+### Installation
 
-### Clone to local
+1.  **Clone the repository:**
+    ```sh
+    git clone https://github.com/your-username/codezone.git
+    cd codezone
+    ```
+2.  **Install dependencies:**
+    ```sh
+    bun install
+    ```
+3.  **Run the application in development mode:**
+    ```sh
+    bun run dev:tauri
+    ```
 
-If you prefer to do it manually with the cleaner git history
+## 🤝 Contributing
 
-```bash
-npx degit AR10Dev/tauri-solid-ts-tailwind-vite my-app # or bunx degit AR10Dev/tauri-solid-ts-tailwind-vite my-app
-cd my-app
-npm install # or pnpm install or yarn install or bun install
-```
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-### Note
-For use Tauri you need to Setup your environment following this [guide](https://tauri.app/start/prerequisites/)
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
 
-## Checklist
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
-When you use this template, follow the checklist to update your info properly
+## 📄 License
 
-- [ ] Rename `name`, `version` and `author` field in `package.json`
-- [ ] Rename `name`, `version`, `description`, `authors` and `repository` field in `src-tauri/Cargo.toml`
-- [ ] Change the author name in `LICENSE`
-- [ ] Clean up the READMEs
-- [ ] Optional: Remove the `.github` folder which contains the github action for cross compilation
-- [ ] Optional: Remove the `.devcontainer` folder which contains the devcontainer for VSCode
-- [ ] Enjoy 😉
-
-## Usage
-
-### Development
-
-```bash
-npm run dev:tauri # or pnpm dev:tauri or yarn dev:tauri or bun dev:tauri
-```
-
-Runs the app in the development mode.<br>
-
-The first time you run this command, it will take several minutes for the Rust package manager to download and build all the required packages. Since they are cached, subsequent builds will be much faster, as only your code will need rebuilding.<br>
-
-If you make edits to the page in the webview, it should update automatically, just like a browser would reload. When you make edits to the Rust files, they will be rebuilt automatically, and your app will restart.<br>
-
-### Build
-
-```bash
-npm run build:tauri # or pnpm build:tauri or yarn build:tauri or bun build:tauri
-```
-
-Builds Solid to the `dist` folder and after will embed it into a single binary with your Rust code.<br>
-The binary itself will be located in `src-tauri/target/release/[app name]`, and installers will be located in `src-tauri/target/release/bundle/`<br>
-
-Like the `dev:tauri` command, the first time you run this, it will take some time to collect the Rust crates and build everything, but on subsequent runs, it will only need to rebuild your code, which is much quicker.<br>
-
-It correctly bundles Solid in production mode and optimizes the binary for the best performance.<br>
-
-🎉 Congratulations, your app is ready to be release!
-
-## Custom App Icon
-To generate your custom app icon you can follow this [guide](https://tauri.app/reference/cli/#icon).<br>
-Your new app icons will be located in `src-tauri/icons/` and remeber to update the `icon` field in `src-tauri/tauri.conf.json` with all your new icon path names.<br>
-
-## Customize the tauri.conf.json
-
-To modify and personalize your app, you need to edit `src-tauri/tauri.conf.json` by following this [guide](https://tauri.app/develop/configuration-files/)
+Distributed under the MIT License. See `LICENSE` for more information.
