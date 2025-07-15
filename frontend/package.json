@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@corvu/resizable": "^0.2.5",
+    "@kobalte/core": "^0.13.10",
     "@types/highlight.js": "10.1.0",
     "clsx": "2.1.1",
     "highlight.js": "11.11.1",

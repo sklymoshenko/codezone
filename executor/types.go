@@ -13,6 +13,11 @@ const (
 	Go         Language = "go"
 )
 
+// Special exit codes for different error types
+const (
+	ExitCodeGoNotInstalled = 150 // Go compiler not found/installed
+)
+
 // ExecutionConfig holds configuration for code execution
 type ExecutionConfig struct {
 	Code     string        `json:"code"`

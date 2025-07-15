@@ -8,7 +8,7 @@ type OutputProps = {
 
 const Output = (props: OutputProps) => {
   return (
-    <div class="relative flex-shrink-0 h-full">
+    <div class="relative flex-shrink-0 h-full p-4">
       <div class="absolute bottom-0 right-0 p-2 rounded-tl text-xs text-gray-300 tracking-wide font-mono">
         <Show
           when={props.isExecuting}

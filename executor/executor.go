@@ -22,8 +22,7 @@ func NewExecutionManager(opts ExecutorOptions) *ExecutionManager {
 
 	// Initialize all supported executors
 	manager.executors[JavaScript] = NewJavaScriptExecutor(opts)
-	// To add more languages, add them here:
-	// manager.executors[Go] = NewGoExecutor(opts)
+	manager.executors[Go] = NewGoExecutor(opts)
 
 	return manager
 }
@@ -81,8 +80,8 @@ func (em *ExecutionManager) RefreshExecutor(lang Language) error {
 	switch lang {
 	case JavaScript:
 		em.executors[JavaScript] = NewJavaScriptExecutor(em.options)
-	// case Go:
-	// 	em.executors[Go] = NewGoExecutor(em.options)
+	case Go:
+		em.executors[Go] = NewGoExecutor(em.options)
 	default:
 		return fmt.Errorf("cannot refresh unsupported language: %s", lang)
 	}

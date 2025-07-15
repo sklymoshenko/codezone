@@ -7,8 +7,20 @@ import type { Language } from '../types'
 import { debounce } from '../utils/debounce'
 import { locStorage } from '../utils/locStorage'
 import { useUndo } from '../utils/useUndo'
+import { showErrorToast } from './ui/ErrorToast'
 
 hljs.registerLanguage('javascript', javascript)
+
+// Helper function to show Go not installed toast
+const showGoNotInstalledToast = () => {
+  showErrorToast({
+    title: 'Golang Not Installed',
+    description: 'Go compiler is not installed. Please install Golang to run Go code.',
+    actionLabel: 'Download Golang',
+    actionUrl: 'https://golang.org/dl/',
+    duration: 8000
+  })
+}
 
 const defaultCode: Record<Language, string> = {
   javascript:
@@ -45,10 +57,7 @@ const Editor: Component<EditorProps> = props => {
   let preRef: HTMLPreElement | undefined
   let textareaRef: HTMLTextAreaElement | undefined
 
-  // Execute initial code on component mount
-  setTimeout(() => void execute(code(), props.language), 0)
-
-  // Watch for language changes from parent
+  // Watch for language changes from parent (also handles initial execution)
   createEffect(() => {
     const newLang = props.language
     const newCode = getCodeForLang(newLang)
@@ -61,8 +70,14 @@ const Editor: Component<EditorProps> = props => {
 
   // This function sends the code to the backend for execution.
   const execute = async (codeToExecute: string, lang: Language) => {
-    // Don't execute if code is empty or language is not JS
-    if (!codeToExecute.trim() || lang !== 'javascript') {
+    // Don't execute if code is empty
+    if (!codeToExecute.trim()) {
+      props.onExecutionResult(null)
+      return
+    }
+
+    // Only execute for supported languages (javascript and go)
+    if (lang !== 'javascript' && lang !== 'go') {
       props.onExecutionResult(null)
       return
     }
@@ -74,6 +89,14 @@ const Editor: Component<EditorProps> = props => {
         language: lang,
         timeout: 0 // 0 tells the backend to use its default timeout.
       })
+
+      // // Handle Go not installed error (exit code 150)
+      if (!result.error && result.exitCode === 150 && lang === 'go') {
+        showGoNotInstalledToast()
+        // Don't show output for Go not installed error
+        return
+      }
+
       props.onExecutionResult(result)
     } catch (e: unknown) {
       // We can safely ignore the "executor is busy" error.
@@ -82,14 +105,16 @@ const Editor: Component<EditorProps> = props => {
       if (errorMessage.includes('executor is busy')) {
         // It's expected that some requests will be discarded. Do nothing.
       } else {
-        props.onExecutionResult({
+        const errorResult = {
           output: '',
           error: errorMessage,
           exitCode: 1,
           duration: 0,
           durationString: '0s',
           language: lang
-        })
+        }
+
+        props.onExecutionResult(errorResult)
       }
     } finally {
       props.onExecutionEnd()

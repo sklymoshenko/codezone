@@ -22,7 +22,7 @@
     "maintainer": "Stanislav Klymoshenko <s.klymoshenko@gmail.com>",
     "description": "A desktop code playground for JavaScript, Go, and SQL.",
     "debpkg": {
-      "depends": ""
+      "depends": "golang-go (>= 1.19)"
     }
   }
 }
