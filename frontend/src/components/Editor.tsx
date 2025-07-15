@@ -1,9 +1,11 @@
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
-import { Component, createEffect, createSignal } from 'solid-js'
+import { Parser } from 'node-sql-parser'
+import { FaSolidPlay } from 'solid-icons/fa'
+import { Component, createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { ExecuteCode, RefreshExecutor } from 'wailsjs/go/main/App'
 import { executor } from 'wailsjs/go/models'
-import type { Language } from '../types'
+import type { Language, PostgresConnectionStatus } from '../types'
 import { debounce } from '../utils/debounce'
 import { locStorage } from '../utils/locStorage'
 import { useUndo } from '../utils/useUndo'
@@ -41,6 +43,7 @@ type EditorProps = {
   onExecutionResult: (result: executor.ExecutionResult | null) => void
   onExecutionStart: () => void
   onExecutionEnd: () => void
+  postgresConnectionStatus: PostgresConnectionStatus
 }
 
 const Editor: Component<EditorProps> = props => {
@@ -49,13 +52,196 @@ const Editor: Component<EditorProps> = props => {
   }
 
   const [code, setCode] = createSignal<string>(getCodeForLang(props.language))
+  const [cursorPosition, setCursorPosition] = createSignal<number>(0)
+  const [buttonPosition, setButtonPosition] = createSignal({
+    display: false,
+    top: 0,
+    left: 0
+  })
+
+  // Add selection tracking to detect when user is actively selecting
+  const [isSelecting, setIsSelecting] = createSignal<boolean>(false)
 
   // Initialize undo system
   const { undo, redo, recordChange, clear } = useUndo(code, setCode)
 
+  // Initialize SQL parser for PostgreSQL
+  const sqlParser = new Parser()
+
+  // Declare refs first
   let codeRef: HTMLElement | undefined
   let preRef: HTMLPreElement | undefined
   let textareaRef: HTMLTextAreaElement | undefined
+
+  // Validate SQL using node-sql-parser and return detailed error info
+  const validateSQL = (sqlCode: string): { isValid: boolean; error: string | null } => {
+    if (!sqlCode.trim()) {
+      return { isValid: false, error: null }
+    }
+
+    try {
+      // Try to parse as PostgreSQL
+      sqlParser.astify(sqlCode, { database: 'PostgresQL' })
+      return { isValid: true, error: null }
+    } catch (error) {
+      // Parser throws error for invalid SQL
+      const errorMessage = error instanceof Error ? error.message : String(error)
+
+      // Clean up the error message for better user experience
+      //@ts-expect-error - error is not typed
+      const friendlyError = `${error.name}: ${errorMessage}`
+
+      return { isValid: false, error: friendlyError }
+    }
+  }
+
+  // Check if SQL operations should be enabled
+  const shouldEnableSQLOperations = createMemo(() => {
+    return (
+      props.language === 'postgres' &&
+      !isSelecting() &&
+      props.postgresConnectionStatus === 'connected'
+    )
+  })
+
+  // Get the nearest complete statement (with semicolon) - but only when SQL operations enabled
+  const getNearestCompleteStatement = createMemo(() => {
+    if (!shouldEnableSQLOperations()) {
+      return null
+    }
+
+    const currentCode = code()
+    const cursor = cursorPosition()
+
+    // Look backwards for the nearest semicolon
+    let nearestSemicolon = -1
+    for (let i = cursor; i >= 0; i--) {
+      if (currentCode[i] === ';') {
+        nearestSemicolon = i
+        break
+      }
+    }
+
+    if (nearestSemicolon === -1) return null // No semicolon found before cursor
+
+    // Find the start of this statement (previous semicolon or beginning)
+    let start = currentCode.lastIndexOf(';', nearestSemicolon - 1)
+    start = start === -1 ? 0 : start + 1
+
+    const end = nearestSemicolon + 1 // Include the semicolon
+
+    const statement = currentCode.substring(start, end).trim()
+    return { statement, start, end }
+  })
+
+  // Check if there's meaningful and VALID SQL content to show execute button
+  const hasExecutableSQL = createMemo(() => {
+    if (!shouldEnableSQLOperations()) {
+      if (props.language !== 'postgres') {
+        props.onExecutionResult(null)
+      }
+      return false
+    }
+
+    const nearestStatement = getNearestCompleteStatement()
+
+    if (!nearestStatement) {
+      props.onExecutionResult(null)
+      return false
+    }
+
+    // Remove comments from the statement
+    const cleanStatement = nearestStatement.statement
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('--'))
+      .join('\n')
+      .trim()
+
+    if (cleanStatement.length === 0) {
+      props.onExecutionResult(null)
+      return false
+    }
+
+    // Validate the statement
+    const validation = validateSQL(cleanStatement)
+
+    if (!validation.isValid && validation.error) {
+      const sqlErrorResult = new executor.ExecutionResult({
+        output: '',
+        error: validation.error,
+        exitCode: 1,
+        duration: 0,
+        durationString: '0s',
+        language: 'postgres'
+      })
+
+      props.onExecutionResult(sqlErrorResult)
+      return false
+    } else if (validation.isValid) {
+      props.onExecutionResult(null)
+      return true
+    }
+
+    return false
+  })
+
+  const currentStatementEnd = createMemo(() => {
+    const statement = getNearestCompleteStatement()
+    return statement?.end ?? -1
+  })
+
+  createEffect(() => {
+    if (!hasExecutableSQL() || !textareaRef) {
+      setButtonPosition({ display: false, top: 0, left: 0 })
+      return
+    }
+
+    const endPos = currentStatementEnd()
+    if (endPos === -1) {
+      setButtonPosition({ display: false, top: 0, left: 0 })
+      return
+    }
+
+    // Get actual computed styles from the textarea
+    const computedStyle = getComputedStyle(textareaRef)
+    const fontSize = parseFloat(computedStyle.fontSize)
+    const lineHeight = parseFloat(computedStyle.lineHeight) || fontSize * 1.2 // fallback if 'normal'
+    const fontFamily = computedStyle.fontFamily
+    const paddingTop = parseFloat(computedStyle.paddingTop)
+    const paddingLeft = parseFloat(computedStyle.paddingLeft)
+
+    // Create a canvas context to measure text accurately
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')!
+    ctx.font = `${fontSize}px ${fontFamily}`
+
+    // Split text into lines up to the statement end
+    const textUpToEnd = code().substring(0, endPos)
+    const lines = textUpToEnd.split('\n')
+
+    const lineNumber = lines.length - 1
+    const lastLine = lines[lines.length - 1] || ''
+
+    // Measure the actual width of the last line
+    const textWidth = ctx.measureText(lastLine).width
+
+    // Button dimensions
+    const buttonHeight = 30
+
+    // Calculate precise position - center button vertically on the line
+    const top = paddingTop + lineNumber * lineHeight + lineHeight / 2 - buttonHeight / 2
+    const left = paddingLeft + textWidth + 8 // Small gap after text
+
+    // Clean up canvas
+    canvas.remove()
+
+    setButtonPosition({
+      display: true,
+      top: top,
+      left: left
+    })
+  })
 
   // Watch for language changes from parent (also handles initial execution)
   createEffect(() => {
@@ -78,7 +264,6 @@ const Editor: Component<EditorProps> = props => {
 
     // Only execute for supported languages (javascript and go)
     if (lang !== 'javascript' && lang !== 'go') {
-      props.onExecutionResult(null)
       return
     }
 
@@ -128,6 +313,7 @@ const Editor: Component<EditorProps> = props => {
     void execute(codeToExecute, lang)
   }, 100)
 
+  // Simplified highlighting effect (no validation logic needed here)
   createEffect(() => {
     const lang = props.language
     const currentCode = code()
@@ -145,7 +331,7 @@ const Editor: Component<EditorProps> = props => {
           hljs.registerLanguage('postgres', module.default)
         }
 
-        // Highlight the code
+        // Just highlight the code
         if (codeRef) {
           const highlighted = hljs.highlight(currentCode, {
             language: lang,
@@ -164,11 +350,16 @@ const Editor: Component<EditorProps> = props => {
     void loadAndHighlight()
   })
 
+  // Update the textarea event handlers
   const handleInput = (e: Event) => {
     const target = e.target as HTMLTextAreaElement
     const oldCode = code()
     const newCode = target.value
     const cursorPos = target.selectionStart
+
+    // Track cursor position
+    setCursorPosition(cursorPos)
+    setIsSelecting(target.selectionStart !== target.selectionEnd)
 
     // Record the change for undo system
     recordChange(oldCode, newCode, cursorPos)
@@ -186,6 +377,13 @@ const Editor: Component<EditorProps> = props => {
       preRef.scrollTop = target.scrollTop
       preRef.scrollLeft = target.scrollLeft
     }
+  }
+
+  // Add cursor tracking to existing events
+  const handleTextareaClick = (e: MouseEvent) => {
+    const target = e.target as HTMLTextAreaElement
+    setCursorPosition(target.selectionStart)
+    setIsSelecting(target.selectionStart !== target.selectionEnd)
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -217,8 +415,31 @@ const Editor: Component<EditorProps> = props => {
       setCode(newCode)
       locStorage.set(`code-${props.language}`, newCode)
 
+      // Update cursor position
+      setCursorPosition(start + 2)
+
       // FIXME: we need this because otherwise cursor will be at the end of the line
       target.selectionStart = target.selectionEnd = start + 2
+    }
+  }
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    const target = e.target as HTMLTextAreaElement
+    setCursorPosition(target.selectionStart)
+    setIsSelecting(target.selectionStart !== target.selectionEnd)
+  }
+
+  const handleMouseUp = (e: MouseEvent) => {
+    const target = e.target as HTMLTextAreaElement
+    setCursorPosition(target.selectionStart)
+    setIsSelecting(target.selectionStart !== target.selectionEnd)
+  }
+
+  // Add selection change handler
+  const handleSelectionChange = () => {
+    if (textareaRef) {
+      setCursorPosition(textareaRef.selectionStart)
+      setIsSelecting(textareaRef.selectionStart !== textareaRef.selectionEnd)
     }
   }
 
@@ -231,6 +452,20 @@ const Editor: Component<EditorProps> = props => {
     } catch (e) {
       console.error('Failed to reset environment:', e)
     }
+  }
+
+  const handleExecutePostgreSQL = () => {
+    if (!hasExecutableSQL()) {
+      return
+    }
+
+    const nearestStatement = getNearestCompleteStatement()
+    const statement = nearestStatement?.statement
+    if (!statement) {
+      return
+    }
+
+    console.log('Executing SQL:', statement)
   }
 
   return (
@@ -257,6 +492,10 @@ const Editor: Component<EditorProps> = props => {
             onInput={handleInput}
             onScroll={handleScroll}
             onKeyDown={handleKeyDown}
+            onClick={handleTextareaClick}
+            onKeyUp={handleKeyUp}
+            onMouseUp={handleMouseUp}
+            onSelectionChange={handleSelectionChange}
             spellcheck={false}
             class="hide-scrollbar absolute top-0 left-0 h-full w-full resize-none border-none bg-transparent p-4 font-mono text-base leading-normal text-transparent caret-white outline-none"
             style={{
@@ -265,6 +504,23 @@ const Editor: Component<EditorProps> = props => {
               '-moz-tab-size': '2'
             }}
           />
+
+          {/* Floating Execute Button for PostgreSQL - only show when SQL operations enabled */}
+          <Show when={buttonPosition().display && shouldEnableSQLOperations()}>
+            <button
+              class="absolute bg-success hover:bg-success/90 text-white rounded-md shadow-md hover:shadow-lg transition-all duration-150 hover:scale-110 z-20 flex items-center justify-center"
+              style={{
+                top: `${buttonPosition().top}px`,
+                left: `${buttonPosition().left}px`,
+                width: '28px',
+                height: '28px'
+              }}
+              onClick={handleExecutePostgreSQL}
+              title="Execute Query"
+            >
+              <FaSolidPlay size={16} />
+            </button>
+          </Show>
         </div>
       </div>
     </div>

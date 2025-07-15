@@ -7,7 +7,7 @@ import {
   Show
 } from 'solid-js'
 import { GetPostgreSQLConnectionStatus } from 'wailsjs/go/main/App'
-import type { executor } from 'wailsjs/go/models'
+import { executor } from 'wailsjs/go/models'
 import { Environment, type EnvironmentInfo } from 'wailsjs/runtime'
 import type { Language, PostgresConnectionStatus } from '../types'
 import { debounce } from '../utils/debounce'
@@ -116,6 +116,7 @@ const Main: Component = () => {
               onExecutionResult={setExecutionResult}
               onExecutionStart={() => setIsExecuting(true)}
               onExecutionEnd={() => setIsExecuting(false)}
+              postgresConnectionStatus={postgresConnectionStatus()}
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
@@ -123,7 +124,7 @@ const Main: Component = () => {
             <Show when={executionResult() || language() === 'postgres'}>
               <Output
                 isExecuting={isExecuting()}
-                executionResult={executionResult()!}
+                executionResult={executionResult()}
                 language={language()}
                 postgresConnectionStatus={postgresConnectionStatus()}
               />

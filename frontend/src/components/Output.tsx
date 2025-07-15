@@ -4,7 +4,7 @@ import type { executor } from 'wailsjs/go/models'
 
 type OutputProps = {
   isExecuting: boolean
-  executionResult: executor.ExecutionResult
+  executionResult: executor.ExecutionResult | null
   language: Language
   postgresConnectionStatus?: PostgresConnectionStatus
 }
