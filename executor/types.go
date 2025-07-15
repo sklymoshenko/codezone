@@ -14,29 +14,35 @@ type Language string
 const (
 	JavaScript Language = "javascript"
 	Go         Language = "go"
+	PostgreSQL Language = "postgres"
 )
 
 // Special exit codes for different error types
 const (
-	ExitCodeGoNotInstalled = 150 // Go compiler not found/installed
+	ExitCodeGoNotInstalled       = 150 // Go compiler not found/installed
+	ExitCodePostgresNotAvailable = 151 // PostgreSQL executor not available
+	ExitCodePostgresConnFailed   = 152 // PostgreSQL connection failed
+	ExitCodePostgresQueryError   = 153 // PostgreSQL query execution error
 )
 
 // ExecutionConfig holds configuration for code execution
 type ExecutionConfig struct {
-	Code     string        `json:"code"`
-	Language Language      `json:"language"`
-	Timeout  time.Duration `json:"timeout"`
-	Input    string        `json:"input,omitempty"`
+	Code           string            `json:"code"`
+	Language       Language          `json:"language"`
+	Timeout        time.Duration     `json:"timeout"`
+	Input          string            `json:"input,omitempty"`
+	PostgreSQLConn *PostgreSQLConfig `json:"postgresqlConn,omitempty"`
 }
 
 // ExecutionResult represents the result of code execution
 type ExecutionResult struct {
-	Output         string        `json:"output"`
-	Error          string        `json:"error"`
-	ExitCode       int           `json:"exitCode"`
-	Duration       time.Duration `json:"duration"`
-	DurationString string        `json:"durationString"`
-	Language       Language      `json:"language"`
+	Output         string          `json:"output"`
+	Error          string          `json:"error"`
+	ExitCode       int             `json:"exitCode"`
+	Duration       time.Duration   `json:"duration"`
+	DurationString string          `json:"durationString"`
+	Language       Language        `json:"language"`
+	SQLResult      *SQLQueryResult `json:"sqlResult,omitempty"`
 }
 
 // Executor interface for different language executors
@@ -61,4 +67,21 @@ func DefaultExecutorOptions() ExecutorOptions {
 		MemoryMB:   50,
 		MaxOutputs: 1000,
 	}
+}
+
+type PostgreSQLConfig struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Database string `json:"database"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	SSLMode  string `json:"sslMode"`
+}
+
+type SQLQueryResult struct {
+	QueryType     string          `json:"queryType"`    // SELECT, INSERT, UPDATE, etc.
+	Columns       []string        `json:"columns"`      // Column names
+	Rows          [][]interface{} `json:"rows"`         // Data rows
+	RowsAffected  int64           `json:"rowsAffected"` // For non-SELECT queries
+	ExecutionTime time.Duration   `json:"executionTime"`
 }

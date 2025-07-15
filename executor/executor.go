@@ -26,6 +26,7 @@ func NewExecutionManager(opts ExecutorOptions) *ExecutionManager {
 	// Initialize all supported executors
 	manager.executors[JavaScript] = NewJavaScriptExecutor(opts)
 	manager.executors[Go] = NewGoExecutor(opts)
+	manager.executors[PostgreSQL] = NewPostgreSQLExecutor(opts)
 
 	return manager
 }
@@ -43,7 +44,20 @@ func (em *ExecutionManager) Execute(config ExecutionConfig) (*ExecutionResult, e
 	executor, exists := em.executors[config.Language]
 	em.mu.RUnlock()
 
-	if !exists || !executor.IsAvailable() {
+	if !exists {
+		return nil, fmt.Errorf("executor for %s is not available", config.Language)
+	}
+
+	// Handle PostgreSQL configuration
+	if config.Language == PostgreSQL {
+		if pgExecutor, ok := executor.(*PostgreSQLExecutor); ok {
+			if config.PostgreSQLConn != nil {
+				pgExecutor.SetConfig(config.PostgreSQLConn)
+			}
+		}
+	}
+
+	if !executor.IsAvailable() {
 		return nil, fmt.Errorf("executor for %s is not available", config.Language)
 	}
 

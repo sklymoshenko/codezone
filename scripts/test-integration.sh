@@ -1,0 +1,333 @@
+#!/bin/bash
+
+# PostgreSQL Integration Test Runner
+# This script mirrors the CI environment for running PostgreSQL integration tests locally
+
+set -e  # Exit on any error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+CONTAINER_NAME="codezone-postgres-test"
+POSTGRES_VERSION="15"
+POSTGRES_PASSWORD="testpassword"
+POSTGRES_DB="testdb"
+POSTGRES_USER="testuser"
+POSTGRES_PORT="5432"
+MAX_WAIT_TIME=30
+
+# Functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed or not in PATH"
+        log_error "Please install Docker to run integration tests"
+        exit 1
+    fi
+    
+    if ! docker info &> /dev/null; then
+        log_error "Docker daemon is not running"
+        log_error "Please start Docker and try again"
+        exit 1
+    fi
+    
+    log_success "Docker is available"
+}
+
+cleanup_container() {
+    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        log_info "Cleaning up existing container: ${CONTAINER_NAME}"
+        docker stop "${CONTAINER_NAME}" &> /dev/null || true
+        docker rm "${CONTAINER_NAME}" &> /dev/null || true
+    fi
+}
+
+cleanup_complete() {
+    cleanup_container
+    
+    # Remove the PostgreSQL image to free up space
+    log_info "Removing PostgreSQL ${POSTGRES_VERSION} image..."
+    docker rmi "postgres:${POSTGRES_VERSION}" &> /dev/null || true
+    
+    # Clean up any dangling images
+    log_info "Cleaning up dangling Docker images..."
+    docker image prune -f &> /dev/null || true
+    
+    log_success "Complete cleanup finished"
+}
+
+start_postgres() {
+    log_info "Starting PostgreSQL ${POSTGRES_VERSION} container..."
+    
+    docker run --name "${CONTAINER_NAME}" \
+        -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
+        -e POSTGRES_DB="${POSTGRES_DB}" \
+        -e POSTGRES_USER="${POSTGRES_USER}" \
+        -p "${POSTGRES_PORT}:5432" \
+        -d postgres:${POSTGRES_VERSION} \
+        > /dev/null
+    
+    log_success "PostgreSQL container started"
+}
+
+wait_for_postgres() {
+    log_info "Waiting for PostgreSQL to be ready..."
+    
+    for i in $(seq 1 $MAX_WAIT_TIME); do
+        if docker exec "${CONTAINER_NAME}" pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" &> /dev/null; then
+            log_success "PostgreSQL is ready!"
+            return 0
+        fi
+        
+        if [ $i -eq $MAX_WAIT_TIME ]; then
+            log_error "PostgreSQL failed to start within ${MAX_WAIT_TIME} seconds"
+            return 1
+        fi
+        
+        echo -n "."
+        sleep 1
+    done
+}
+
+run_unit_tests() {
+    log_info "Running unit tests..."
+    
+    if go test ./executor -v \
+        -run "TestPostgreSQLExecutor_(Basic|Configuration|QueryType|IsSelect|PrepareSQLCode|ConvertValue|ExecuteWithoutConnection)" \
+        -timeout=30s; then
+        log_success "Unit tests passed!"
+        return 0
+    else
+        log_error "Unit tests failed!"
+        return 1
+    fi
+}
+
+run_integration_tests() {
+    log_info "Running integration tests..."
+    
+    export POSTGRES_HOST="localhost"
+    export POSTGRES_PORT="${POSTGRES_PORT}"
+    export POSTGRES_DB="${POSTGRES_DB}"
+    export POSTGRES_USER="${POSTGRES_USER}"
+    export POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
+    
+    if go test ./executor -v \
+        -run "TestPostgreSQLExecutor_(Integration|ConnectionTesting)" \
+        -timeout=60s; then
+        log_success "Integration tests passed!"
+        return 0
+    else
+        log_error "Integration tests failed!"
+        return 1
+    fi
+}
+
+show_connection_info() {
+    log_info "PostgreSQL connection details:"
+    echo "  Host: localhost"
+    echo "  Port: ${POSTGRES_PORT}"
+    echo "  Database: ${POSTGRES_DB}"
+    echo "  User: ${POSTGRES_USER}"
+    echo "  Password: ${POSTGRES_PASSWORD}"
+    echo ""
+    echo "Connect with: psql -h localhost -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+}
+
+print_usage() {
+    echo "Usage: $0 [OPTIONS] [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  unit          Run only unit tests (no database required)"
+    echo "  integration   Run only integration tests (requires database)"
+    echo "  all           Run all tests (default)"
+    echo "  setup         Start PostgreSQL container only"
+    echo "  cleanup       Stop and remove PostgreSQL container"
+    echo "  logs          Show PostgreSQL container logs"
+    echo ""
+    echo "Options:"
+    echo "  -v, --version VERSION    PostgreSQL version (default: 15)"
+    echo "  -p, --port PORT         PostgreSQL port (default: 5432)"
+    echo "  -k, --keep              Keep container running after tests"
+    echo "  -h, --help              Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                      # Run all tests"
+    echo "  $0 unit                 # Run only unit tests"
+    echo "  $0 integration          # Run only integration tests"
+    echo "  $0 setup                # Start PostgreSQL for manual testing"
+    echo "  $0 -v 16 all            # Test against PostgreSQL 16"
+    echo "  $0 -k integration       # Keep container after integration tests"
+}
+
+# Parse command line arguments
+COMMAND="all"
+KEEP_CONTAINER=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--version)
+            POSTGRES_VERSION="$2"
+            shift 2
+            ;;
+        -p|--port)
+            POSTGRES_PORT="$2"
+            shift 2
+            ;;
+        -k|--keep)
+            KEEP_CONTAINER=true
+            shift
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        unit|integration|all|setup|cleanup|logs)
+            COMMAND="$1"
+            shift
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            print_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Main execution
+main() {
+    log_info "PostgreSQL Integration Test Runner"
+    log_info "Command: ${COMMAND}"
+    echo ""
+    
+    case "${COMMAND}" in
+        cleanup)
+            cleanup_complete
+            log_success "Cleanup completed"
+            ;;
+            
+        logs)
+            if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+                docker logs "${CONTAINER_NAME}"
+            else
+                log_error "Container ${CONTAINER_NAME} is not running"
+                exit 1
+            fi
+            ;;
+            
+        unit)
+            check_docker  # Still check docker for consistency
+            run_unit_tests
+            ;;
+            
+        setup)
+            check_docker
+            cleanup_container
+            start_postgres
+            wait_for_postgres
+            show_connection_info
+            log_success "PostgreSQL is ready for testing!"
+            log_info "Run 'docker stop ${CONTAINER_NAME}' when done"
+            ;;
+            
+        integration)
+            check_docker
+            cleanup_container
+            start_postgres
+            
+            if wait_for_postgres; then
+                show_connection_info
+                echo ""
+                
+                if run_integration_tests; then
+                    log_success "All integration tests completed successfully!"
+                    EXIT_CODE=0
+                else
+                    log_error "Integration tests failed!"
+                    EXIT_CODE=1
+                fi
+                
+                if [ "$KEEP_CONTAINER" = false ]; then
+                    cleanup_complete
+                else
+                    log_info "Container kept running (use --cleanup to remove)"
+                fi
+                
+                exit $EXIT_CODE
+            else
+                cleanup_complete
+                exit 1
+            fi
+            ;;
+            
+        all)
+            check_docker
+            
+            # Run unit tests first (fast feedback)
+            if ! run_unit_tests; then
+                log_error "Unit tests failed, skipping integration tests"
+                exit 1
+            fi
+            
+            echo ""
+            cleanup_container
+            start_postgres
+            
+            if wait_for_postgres; then
+                show_connection_info
+                echo ""
+                
+                if run_integration_tests; then
+                    log_success "All tests completed successfully!"
+                    EXIT_CODE=0
+                else
+                    log_error "Integration tests failed!"
+                    EXIT_CODE=1
+                fi
+                
+                if [ "$KEEP_CONTAINER" = false ]; then
+                    cleanup_complete
+                else
+                    log_info "Container kept running (use ./scripts/test-integration.sh cleanup to remove)"
+                fi
+                
+                exit $EXIT_CODE
+            else
+                cleanup_complete
+                exit 1
+            fi
+            ;;
+            
+        *)
+            log_error "Unknown command: ${COMMAND}"
+            print_usage
+            exit 1
+            ;;
+    esac
+}
+
+# Trap to ensure cleanup on script exit
+trap 'if [ "$KEEP_CONTAINER" = false ] && [ "$COMMAND" != "setup" ] && [ "$COMMAND" != "cleanup" ] && [ "$COMMAND" != "logs" ]; then cleanup_complete; fi' EXIT
+
+# Run main function
+main 
