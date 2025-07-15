@@ -1,0 +1,27 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "codezone",
+  "outputfilename": "codezone",
+  "frontend:install": "bun install",
+  "frontend:build": "bun run build",
+  "frontend:dev:watcher": "bun run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Stanislav Klymoshenko"
+  },
+  "info": {
+    "companyName": "Stanislav Klymoshenko",
+    "productName": "Code Zone",
+    "copyright": "© 2024 Stanislav Klymoshenko"
+  },
+  "version": "1.0.0",
+  "linux": {
+    "icon": "appicon.png",
+    "package_name": "codezone",
+    "maintainer": "Stanislav Klymoshenko",
+    "description": "A desktop code playground for JavaScript, Go, and SQL.",
+    "debpkg": {
+      "depends": "golang-go (>= 1.19)"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+CodeZone - Code Playground Application
+
+Copyright (c) 2024-2025 Stanislav Klymoshenko
+
+This project includes software developed by:
+- The V8 project authors (V8 JavaScript Engine)
+- Roger Peppe (v8go Go bindings)  
+- Lea Anthony (Wails framework)
+- Various contributors to Node.js packages
+
+For detailed license information, see the LICENSE file. 
