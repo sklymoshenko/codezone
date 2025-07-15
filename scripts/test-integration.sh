@@ -54,14 +54,62 @@ check_docker() {
     log_success "Docker is available"
 }
 
+# Check if container exists and is healthy
+container_exists() {
+    docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"
+}
+
+container_running() {
+    docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"
+}
+
+container_healthy() {
+    if container_running; then
+        docker exec "${CONTAINER_NAME}" pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" &> /dev/null
+    else
+        return 1
+    fi
+}
+
+# Smart container management - reuse if possible
+ensure_postgres_running() {
+    if container_exists; then
+        if container_running; then
+            if container_healthy; then
+                log_success "PostgreSQL container is already running and healthy"
+                return 0
+            else
+                log_warning "Container exists but is not healthy, restarting..."
+                docker stop "${CONTAINER_NAME}" &> /dev/null || true
+                docker start "${CONTAINER_NAME}" &> /dev/null
+            fi
+        else
+            log_info "Container exists but is stopped, starting..."
+            docker start "${CONTAINER_NAME}" &> /dev/null
+        fi
+        
+        if wait_for_postgres; then
+            return 0
+        else
+            log_warning "Failed to start existing container, recreating..."
+            docker rm "${CONTAINER_NAME}" &> /dev/null || true
+        fi
+    fi
+    
+    # Create new container if none exists or existing one failed
+    start_postgres
+    wait_for_postgres
+}
+
 cleanup_container() {
-    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        log_info "Cleaning up existing container: ${CONTAINER_NAME}"
+    if container_exists; then
+        log_info "Stopping and removing container: ${CONTAINER_NAME}"
         docker stop "${CONTAINER_NAME}" &> /dev/null || true
         docker rm "${CONTAINER_NAME}" &> /dev/null || true
     fi
 }
 
+# More aggressive cleanup - only when explicitly requested
 cleanup_complete() {
     cleanup_container
     
@@ -163,26 +211,30 @@ print_usage() {
     echo "  all           Run all tests (default)"
     echo "  setup         Start PostgreSQL container only"
     echo "  cleanup       Stop and remove PostgreSQL container"
+    echo "  cleanup-all   Stop container, remove container and image"
     echo "  logs          Show PostgreSQL container logs"
     echo ""
     echo "Options:"
     echo "  -v, --version VERSION    PostgreSQL version (default: 15)"
     echo "  -p, --port PORT         PostgreSQL port (default: 5432)"
     echo "  -k, --keep              Keep container running after tests"
+    echo "  -r, --recreate          Force recreate container even if healthy"
     echo "  -h, --help              Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                      # Run all tests"
+    echo "  $0                      # Run all tests (reuse existing container)"
     echo "  $0 unit                 # Run only unit tests"
     echo "  $0 integration          # Run only integration tests"
     echo "  $0 setup                # Start PostgreSQL for manual testing"
     echo "  $0 -v 16 all            # Test against PostgreSQL 16"
     echo "  $0 -k integration       # Keep container after integration tests"
+    echo "  $0 -r all               # Force recreate container"
 }
 
 # Parse command line arguments
 COMMAND="all"
 KEEP_CONTAINER=false
+FORCE_RECREATE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -198,11 +250,15 @@ while [[ $# -gt 0 ]]; do
             KEEP_CONTAINER=true
             shift
             ;;
+        -r|--recreate)
+            FORCE_RECREATE=true
+            shift
+            ;;
         -h|--help)
             print_usage
             exit 0
             ;;
-        unit|integration|all|setup|cleanup|logs)
+        unit|integration|all|setup|cleanup|cleanup-all|logs)
             COMMAND="$1"
             shift
             ;;
@@ -222,12 +278,17 @@ main() {
     
     case "${COMMAND}" in
         cleanup)
+            cleanup_container
+            log_success "Container cleanup completed"
+            ;;
+            
+        cleanup-all)
             cleanup_complete
-            log_success "Cleanup completed"
+            log_success "Complete cleanup finished"
             ;;
             
         logs)
-            if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+            if container_running; then
                 docker logs "${CONTAINER_NAME}"
             else
                 log_error "Container ${CONTAINER_NAME} is not running"
@@ -242,42 +303,47 @@ main() {
             
         setup)
             check_docker
-            cleanup_container
-            start_postgres
-            wait_for_postgres
+            if [ "$FORCE_RECREATE" = true ]; then
+                cleanup_container
+                start_postgres
+                wait_for_postgres
+            else
+                ensure_postgres_running
+            fi
             show_connection_info
             log_success "PostgreSQL is ready for testing!"
-            log_info "Run 'docker stop ${CONTAINER_NAME}' when done"
+            log_info "Run '$0 cleanup' to stop the container when done"
             ;;
             
         integration)
             check_docker
-            cleanup_container
-            start_postgres
-            
-            if wait_for_postgres; then
-                show_connection_info
-                echo ""
-                
-                if run_integration_tests; then
-                    log_success "All integration tests completed successfully!"
-                    EXIT_CODE=0
-                else
-                    log_error "Integration tests failed!"
-                    EXIT_CODE=1
-                fi
-                
-                if [ "$KEEP_CONTAINER" = false ]; then
-                    cleanup_complete
-                else
-                    log_info "Container kept running (use --cleanup to remove)"
-                fi
-                
-                exit $EXIT_CODE
+            if [ "$FORCE_RECREATE" = true ]; then
+                cleanup_container
+                start_postgres
+                wait_for_postgres
             else
-                cleanup_complete
-                exit 1
+                ensure_postgres_running
             fi
+            
+            show_connection_info
+            echo ""
+            
+            if run_integration_tests; then
+                log_success "All integration tests completed successfully!"
+                EXIT_CODE=0
+            else
+                log_error "Integration tests failed!"
+                EXIT_CODE=1
+            fi
+            
+            if [ "$KEEP_CONTAINER" = false ]; then
+                log_info "Stopping container (use -k to keep running)"
+                docker stop "${CONTAINER_NAME}" &> /dev/null || true
+            else
+                log_info "Container kept running (use '$0 cleanup' to remove)"
+            fi
+            
+            exit $EXIT_CODE
             ;;
             
         all)
@@ -290,32 +356,33 @@ main() {
             fi
             
             echo ""
-            cleanup_container
-            start_postgres
-            
-            if wait_for_postgres; then
-                show_connection_info
-                echo ""
-                
-                if run_integration_tests; then
-                    log_success "All tests completed successfully!"
-                    EXIT_CODE=0
-                else
-                    log_error "Integration tests failed!"
-                    EXIT_CODE=1
-                fi
-                
-                if [ "$KEEP_CONTAINER" = false ]; then
-                    cleanup_complete
-                else
-                    log_info "Container kept running (use ./scripts/test-integration.sh cleanup to remove)"
-                fi
-                
-                exit $EXIT_CODE
+            if [ "$FORCE_RECREATE" = true ]; then
+                cleanup_container
+                start_postgres
+                wait_for_postgres
             else
-                cleanup_complete
-                exit 1
+                ensure_postgres_running
             fi
+            
+            show_connection_info
+            echo ""
+            
+            if run_integration_tests; then
+                log_success "All tests completed successfully!"
+                EXIT_CODE=0
+            else
+                log_error "Integration tests failed!"
+                EXIT_CODE=1
+            fi
+            
+            if [ "$KEEP_CONTAINER" = false ]; then
+                log_info "Stopping container (use -k to keep running)"
+                docker stop "${CONTAINER_NAME}" &> /dev/null || true
+            else
+                log_info "Container kept running (use '$0 cleanup' to remove)"
+            fi
+            
+            exit $EXIT_CODE
             ;;
             
         *)
@@ -326,8 +393,8 @@ main() {
     esac
 }
 
-# Trap to ensure cleanup on script exit
-trap 'if [ "$KEEP_CONTAINER" = false ] && [ "$COMMAND" != "setup" ] && [ "$COMMAND" != "cleanup" ] && [ "$COMMAND" != "logs" ]; then cleanup_complete; fi' EXIT
+# Only cleanup on unexpected exits, not normal completion
+trap 'if [ $? -ne 0 ] && [ "$KEEP_CONTAINER" = false ] && [ "$COMMAND" != "setup" ] && [ "$COMMAND" != "cleanup" ] && [ "$COMMAND" != "cleanup-all" ] && [ "$COMMAND" != "logs" ]; then docker stop "${CONTAINER_NAME}" &> /dev/null || true; fi' EXIT
 
 # Run main function
 main 
