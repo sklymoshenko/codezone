@@ -12,4 +12,5 @@ bun run test:run
 
 # Run Go tests (including stable JavaScript executor tests)
 cd ../
-go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup" -timeout 30s 
+go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup" -timeout 30s
+go test ./executor/ -v -run "TestGoExecutor" -timeout 30s
