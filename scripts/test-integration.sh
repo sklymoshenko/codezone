@@ -103,9 +103,34 @@ ensure_postgres_running() {
 
 cleanup_container() {
     if container_exists; then
+        # Get volumes associated with this specific container before stopping it
+        log_info "Finding volumes associated with container: ${CONTAINER_NAME}"
+        container_volumes=$(docker inspect "${CONTAINER_NAME}" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}} {{end}}{{end}}' 2>/dev/null || echo "")
+        
         log_info "Stopping and removing container: ${CONTAINER_NAME}"
         docker stop "${CONTAINER_NAME}" &> /dev/null || true
         docker rm "${CONTAINER_NAME}" &> /dev/null || true
+        
+        # Remove our specific test volume
+        TEST_VOLUME_NAME="${CONTAINER_NAME}-data"
+        if docker volume ls -q | grep -q "^${TEST_VOLUME_NAME}$"; then
+            log_info "Removing test volume: ${TEST_VOLUME_NAME}"
+            docker volume rm "${TEST_VOLUME_NAME}" &> /dev/null || true
+        fi
+        
+        # Remove any other volumes that were associated with our test container
+        if [ -n "$container_volumes" ]; then
+            log_info "Removing other volumes associated with test container: $container_volumes"
+            for volume in $container_volumes; do
+                # Skip our named volume as we already handled it above
+                if [ "$volume" != "${TEST_VOLUME_NAME}" ]; then
+                    log_info "Removing volume: $volume"
+                    docker volume rm "$volume" &> /dev/null || true
+                fi
+            done
+        else
+            log_info "No additional volumes found associated with test container"
+        fi
     fi
 }
 
@@ -121,21 +146,37 @@ cleanup_complete() {
     log_info "Cleaning up dangling Docker images..."
     docker image prune -f &> /dev/null || true
     
-    log_success "Complete cleanup finished"
+    # Only remove truly unused volumes (not all postgres volumes)
+    log_info "Removing truly unused Docker volumes..."
+    unused_volume_count=$(docker volume ls -q --filter dangling=true | wc -l)
+    if [ "$unused_volume_count" -gt 0 ]; then
+        log_info "Found $unused_volume_count unused (dangling) volumes to clean up"
+        docker volume prune -f &> /dev/null || true
+    else
+        log_info "No unused volumes found"
+    fi
+    
+    log_success "Complete cleanup finished - only test-related resources removed"
 }
 
 start_postgres() {
     log_info "Starting PostgreSQL ${POSTGRES_VERSION} container..."
+    
+    # Create a named volume for this test session
+    TEST_VOLUME_NAME="${CONTAINER_NAME}-data"
+    log_info "Creating named volume: ${TEST_VOLUME_NAME}"
+    docker volume create "${TEST_VOLUME_NAME}" > /dev/null
     
     docker run --name "${CONTAINER_NAME}" \
         -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
         -e POSTGRES_DB="${POSTGRES_DB}" \
         -e POSTGRES_USER="${POSTGRES_USER}" \
         -p "${POSTGRES_PORT}:5432" \
+        -v "${TEST_VOLUME_NAME}:/var/lib/postgresql/data" \
         -d postgres:${POSTGRES_VERSION} \
         > /dev/null
     
-    log_success "PostgreSQL container started"
+    log_success "PostgreSQL container started with named volume: ${TEST_VOLUME_NAME}"
 }
 
 wait_for_postgres() {

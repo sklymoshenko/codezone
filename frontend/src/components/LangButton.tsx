@@ -22,12 +22,11 @@ const LangButton: Component<LangButtonProps> = props => {
     >
       {props.icon}
 
-      {/* Connection status indicator - small dot on top-right */}
       <Show when={props.connectionStatus}>
         <div
           class={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-border transition-colors`}
           classList={{
-            'bg-success': props.connectionStatus === 'connected',
+            'bg-success animate-pulse': props.connectionStatus === 'connected',
             'bg-destructive': props.connectionStatus === 'disconnected'
           }}
         />

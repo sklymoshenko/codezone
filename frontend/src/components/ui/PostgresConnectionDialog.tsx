@@ -1,5 +1,5 @@
-import { Component, createSignal, Show } from 'solid-js'
-import { SetPostgreSQLConfig, TestPostgreSQLConnection } from 'wailsjs/go/main/App'
+import { Component, createSignal, onMount, Show } from 'solid-js'
+import { HadleConnection } from 'wailsjs/go/main/App'
 import { executor } from 'wailsjs/go/models'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './dialog'
 import { showErrorToast } from './ErrorToast'
@@ -11,8 +11,17 @@ interface PostgresConnectionDialogProps {
   onConnect: (connected: boolean) => void
 }
 
+type FormData = {
+  host: string
+  port: number
+  database: string
+  username: string
+  password: string
+  sslMode: string
+}
+
 const PostgresConnectionDialog: Component<PostgresConnectionDialogProps> = props => {
-  const [formData, setFormData] = createSignal({
+  const [formData, setFormData] = createSignal<FormData>({
     host: 'localhost',
     port: 5432,
     database: '',
@@ -23,26 +32,38 @@ const PostgresConnectionDialog: Component<PostgresConnectionDialogProps> = props
 
   const [isConnecting, setIsConnecting] = createSignal(false)
 
+  // Load saved configuration from localStorage on mount
+  onMount(() => {
+    try {
+      const savedConfig = localStorage.getItem('postgres-config')
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig) as FormData
+        setFormData(prev => ({
+          ...prev,
+          ...parsedConfig,
+          password: '' // Always keep password empty for security
+        }))
+      }
+    } catch (error) {
+      console.warn('Failed to load saved PostgreSQL configuration:', error)
+    }
+  })
+
   const handleConnect = async () => {
     setIsConnecting(true)
 
     try {
       const config = new executor.PostgreSQLConfig(formData())
 
-      // Test connection first
-      const isValid = await TestPostgreSQLConnection(config)
+      // Test connection and create pool
+      const isValid = await HadleConnection(config)
 
       if (isValid) {
-        // Set config in backend
-        await SetPostgreSQLConfig(config)
+        // Pool is already created and config is set by TestPostgreSQLConnection
 
         // Update connection status
         props.onConnect(true)
         props.onOpenChange(false)
-
-        // Store config in localStorage for persistence (without password)
-        const { password, ...configWithoutPassword } = formData()
-        localStorage.setItem('postgres-config', JSON.stringify(configWithoutPassword))
       } else {
         showErrorToast({
           title: 'Connection Failed',
@@ -50,26 +71,32 @@ const PostgresConnectionDialog: Component<PostgresConnectionDialogProps> = props
             'Failed to connect to PostgreSQL database. Please check your credentials.',
           duration: 5000
         })
+        localStorage.removeItem('postgres-config')
       }
     } catch (err) {
+      console.error('Error connecting to PostgreSQL:', err)
       showErrorToast({
         title: 'Connection Error',
         description:
           err instanceof Error ? err.message : 'Failed to connect to PostgreSQL',
         duration: 5000
       })
+      localStorage.removeItem('postgres-config')
     } finally {
       setIsConnecting(false)
+      // Store config in localStorage for persistence (without password)
+      const { password, ...configWithoutPassword } = formData()
+      localStorage.setItem('postgres-config', JSON.stringify(configWithoutPassword))
     }
   }
 
   const updateField = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev: FormData) => ({ ...prev, [field]: value }))
   }
 
   const isFormValid = () => {
     const data = formData()
-    return data.host && data.database && data.username && data.port > 0
+    return data.host && data.database && data.username && data.port > 0 && data.password
   }
 
   return (

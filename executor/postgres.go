@@ -6,6 +6,7 @@ package executor
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -100,25 +101,34 @@ func (p *PostgreSQLExecutor) Execute(ctx context.Context, code string, input str
 // ensureConnection establishes connection pool if not already connected
 func (p *PostgreSQLExecutor) ensureConnection(ctx context.Context) error {
 	if p.pool != nil {
+		log.Println("PostgreSQL Executor: Testing existing connection pool")
 		// Test existing connection
 		if err := p.pool.Ping(ctx); err == nil {
+			log.Println("PostgreSQL Executor: Existing connection pool is healthy")
 			return nil
 		}
+		log.Println("PostgreSQL Executor: Existing connection pool is unhealthy, closing it")
 		// Close bad connection
 		p.pool.Close()
 		p.pool = nil
 	}
 
 	if p.config == nil {
+		log.Println("PostgreSQL Executor: ensureConnection failed - no configuration provided")
 		return fmt.Errorf("no PostgreSQL configuration provided")
 	}
+
+	log.Printf("PostgreSQL Executor: Building connection string for %s:%d/%s",
+		p.config.Host, p.config.Port, p.config.Database)
 
 	// Build connection string
 	connStr := p.buildConnectionString()
 
+	log.Println("PostgreSQL Executor: Parsing connection configuration")
 	// Create connection pool
 	poolConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
+		log.Printf("PostgreSQL Executor: Invalid connection configuration: %v", err)
 		return fmt.Errorf("invalid connection configuration: %w", err)
 	}
 
@@ -128,17 +138,24 @@ func (p *PostgreSQLExecutor) ensureConnection(ctx context.Context) error {
 	poolConfig.MaxConnLifetime = time.Hour
 	poolConfig.MaxConnIdleTime = time.Minute * 30
 
+	log.Printf("PostgreSQL Executor: Creating connection pool (MaxConns: %d, MinConns: %d)",
+		poolConfig.MaxConns, poolConfig.MinConns)
+
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
+		log.Printf("PostgreSQL Executor: Failed to create connection pool: %v", err)
 		return fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
+	log.Println("PostgreSQL Executor: Testing new connection pool with ping")
 	// Test connection
 	if err := pool.Ping(ctx); err != nil {
+		log.Printf("PostgreSQL Executor: Failed to ping database: %v", err)
 		pool.Close()
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	log.Println("PostgreSQL Executor: Connection pool created and tested successfully")
 	p.pool = pool
 	return nil
 }
@@ -376,26 +393,69 @@ func (p *PostgreSQLExecutor) SetConfig(config *PostgreSQLConfig) {
 	}
 }
 
-// TestConnection tests the PostgreSQL connection without executing queries
-func (p *PostgreSQLExecutor) TestConnection(ctx context.Context, config *PostgreSQLConfig) error {
+// CreatePgPool creates PostgreSQL connection pool with the given config
+func (p *PostgreSQLExecutor) CreatePgPool(ctx context.Context, config *PostgreSQLConfig) error {
 	if config == nil {
+		log.Println("PostgreSQL Executor: CreatePgPool failed - no configuration provided")
 		return fmt.Errorf("no configuration provided")
 	}
 
-	// Temporarily set config for testing
-	oldConfig := p.config
-	p.config = config
-	defer func() { p.config = oldConfig }()
+	log.Printf("PostgreSQL Executor: Creating connection pool for %s:%d/%s",
+		config.Host, config.Port, config.Database)
 
-	// Test connection
-	err := p.ensureConnection(ctx)
-	if p.pool != nil && p.config == config {
-		// Only close if we're testing a different config
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// Set the config
+	p.config = config
+
+	// Close existing connection if any
+	if p.pool != nil {
+		log.Println("PostgreSQL Executor: Closing existing connection pool")
 		p.pool.Close()
 		p.pool = nil
 	}
 
-	return err
+	// Create new connection pool
+	err := p.ensureConnection(ctx)
+	if err != nil {
+		log.Printf("PostgreSQL Executor: Pool creation failed: %v", err)
+		return err
+	}
+
+	log.Printf("PostgreSQL Executor: Successfully created connection pool for %s:%d/%s",
+		config.Host, config.Port, config.Database)
+	return nil
+}
+
+// TestConnection tests the PostgreSQL connection without executing queries
+func (p *PostgreSQLExecutor) TestConnection(ctx context.Context, config *PostgreSQLConfig) error {
+	if config == nil {
+		log.Println("PostgreSQL Executor: TestConnection failed - no configuration provided")
+		return fmt.Errorf("no configuration provided")
+	}
+
+	log.Printf("PostgreSQL Executor: Testing connection to %s:%d/%s",
+		config.Host, config.Port, config.Database)
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.pool == nil {
+		log.Println("PostgreSQL Executor: TestConnection failed - no connection pool available")
+		return fmt.Errorf("no connection pool available - call CreatePgPool first")
+	}
+
+	// Test the existing pool
+	err := p.pool.Ping(ctx)
+	if err != nil {
+		log.Printf("PostgreSQL Executor: Connection test failed: %v", err)
+		return err
+	}
+
+	log.Printf("PostgreSQL Executor: Connection test successful for %s:%d/%s",
+		config.Host, config.Port, config.Database)
+	return nil
 }
 
 // Language returns the language identifier
@@ -411,6 +471,34 @@ func (p *PostgreSQLExecutor) IsAvailable() bool {
 	return p.isAvailableInternal()
 }
 
+// IsConnected checks if PostgreSQL connection is active and healthy
+func (p *PostgreSQLExecutor) IsConnected() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// Must be configured first
+	if !p.isAvailableInternal() {
+		return false
+	}
+
+	// Must have an active pool
+	if p.pool == nil {
+		return false
+	}
+
+	// Test connection with a quick ping (with timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := p.pool.Ping(ctx)
+	if err != nil {
+		log.Printf("PostgreSQL Executor: Connection status check failed: %v", err)
+		return false
+	}
+
+	return true
+}
+
 // isAvailableInternal checks availability without locking (internal use only)
 func (p *PostgreSQLExecutor) isAvailableInternal() bool {
 	return p.config != nil &&
@@ -421,12 +509,18 @@ func (p *PostgreSQLExecutor) isAvailableInternal() bool {
 
 // Cleanup closes database connections and performs cleanup
 func (p *PostgreSQLExecutor) Cleanup() error {
+	log.Println("PostgreSQL Executor: Starting cleanup process")
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.pool != nil {
+		log.Println("PostgreSQL Executor: Closing connection pool")
 		p.pool.Close()
 		p.pool = nil
+		log.Println("PostgreSQL Executor: Connection pool closed successfully")
+	} else {
+		log.Println("PostgreSQL Executor: No active connection pool to close")
 	}
 
 	return nil

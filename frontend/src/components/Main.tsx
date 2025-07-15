@@ -1,4 +1,12 @@
-import { Component, createResource, createSignal, Show } from 'solid-js'
+import {
+  Component,
+  createResource,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show
+} from 'solid-js'
+import { GetPostgreSQLConnectionStatus } from 'wailsjs/go/main/App'
 import type { executor } from 'wailsjs/go/models'
 import { Environment, type EnvironmentInfo } from 'wailsjs/runtime'
 import type { Language, PostgresConnectionStatus } from '../types'
@@ -20,7 +28,7 @@ const Main: Component = () => {
   const [executionResult, setExecutionResult] =
     createSignal<executor.ExecutionResult | null>(null)
   const [isExecuting, setIsExecuting] = createSignal(false)
-  const [postgresConnectionStatus] =
+  const [postgresConnectionStatus, setPostgresConnectionStatus] =
     createSignal<PostgresConnectionStatus>('disconnected')
 
   // Language state management
@@ -30,6 +38,33 @@ const Main: Component = () => {
   const [language, setLanguage] = createSignal<Language>(initialLang)
 
   const [panelSizes, setPanelSizes] = createSignal<number[]>(getStoredPanelSizes())
+
+  // PostgreSQL connection status monitoring
+  let statusInterval: ReturnType<typeof setInterval> | undefined
+
+  const checkConnectionStatus = async () => {
+    try {
+      const isConnected = await GetPostgreSQLConnectionStatus()
+      setPostgresConnectionStatus(isConnected ? 'connected' : 'disconnected')
+    } catch (err) {
+      console.error('Error checking PostgreSQL connection status:', err)
+      setPostgresConnectionStatus('disconnected')
+    }
+  }
+
+  onMount(() => {
+    // Initial status check
+    void checkConnectionStatus()
+
+    // Set up periodic status monitoring (every 5 seconds)
+    statusInterval = setInterval(() => void checkConnectionStatus(), 5000)
+  })
+
+  onCleanup(() => {
+    if (statusInterval) {
+      clearInterval(statusInterval)
+    }
+  })
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang)
@@ -46,6 +81,11 @@ const Main: Component = () => {
     }
   }
 
+  // Provide connection status refresh function to child components
+  const refreshConnectionStatus = () => {
+    void checkConnectionStatus()
+  }
+
   return (
     <main class="h-screen w-screen flex flex-col relative">
       <Show when={!env.loading && env()?.platform === 'linux'}>
@@ -58,6 +98,7 @@ const Main: Component = () => {
           currentLanguage={language()}
           onLanguageChange={handleLanguageChange}
           postgresConnectionStatus={postgresConnectionStatus()}
+          onConnectionChange={refreshConnectionStatus}
         />
       </div>
 
@@ -79,8 +120,13 @@ const Main: Component = () => {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel class="min-w-[200px]">
-            <Show when={executionResult()}>
-              <Output isExecuting={isExecuting()} executionResult={executionResult()!} />
+            <Show when={executionResult() || language() === 'postgres'}>
+              <Output
+                isExecuting={isExecuting()}
+                executionResult={executionResult()!}
+                language={language()}
+                postgresConnectionStatus={postgresConnectionStatus()}
+              />
             </Show>
           </ResizablePanel>
         </Resizable>

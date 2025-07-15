@@ -3,35 +3,54 @@ import { Component, createSignal } from 'solid-js'
 import type { Language, PostgresConnectionStatus } from '../types'
 import LangButton from './LangButton'
 import PostgresConnectionDialog from './ui/PostgresConnectionDialog'
+import PostgresDisconnectDialog from './ui/PostgresDisconnectDialog'
 
 type LangSwitchProps = {
   currentLanguage: Language
   onLanguageChange: (lang: Language) => void
   postgresConnectionStatus: PostgresConnectionStatus
+  onConnectionChange?: () => void
 }
 
 const LangSwitch: Component<LangSwitchProps> = props => {
-  // PostgreSQL connection state - default disconnected
-  const [postgresConnectionStatus, setPostgresConnectionStatus] = createSignal<
-    'connected' | 'disconnected'
-  >('disconnected')
   const [showConnectionDialog, setShowConnectionDialog] = createSignal(false)
+  const [showDisconnectDialog, setShowDisconnectDialog] = createSignal(false)
 
   const handlePostgresClick = () => {
-    if (postgresConnectionStatus() === 'disconnected') {
+    if (props.postgresConnectionStatus === 'disconnected') {
       // Show connection dialog if not connected
       setShowConnectionDialog(true)
     } else {
-      // Switch to postgres language if already connected
-      props.onLanguageChange('postgres')
+      // Show disconnect dialog if connected, or switch to postgres if already selected
+      if (props.currentLanguage === 'postgres') {
+        setShowDisconnectDialog(true)
+      } else {
+        props.onLanguageChange('postgres')
+      }
     }
   }
 
   const handleConnectionSuccess = (connected: boolean) => {
-    setPostgresConnectionStatus(connected ? 'connected' : 'disconnected')
+    // Trigger status refresh in parent component
+    if (connected && props.onConnectionChange) {
+      props.onConnectionChange()
+    }
+
     if (connected) {
       // Automatically switch to postgres language after successful connection
       props.onLanguageChange('postgres')
+    }
+  }
+
+  const handleDisconnectionSuccess = (disconnected: boolean) => {
+    // Trigger status refresh in parent component
+    if (disconnected && props.onConnectionChange) {
+      props.onConnectionChange()
+    }
+
+    if (disconnected) {
+      // Switch away from postgres language after disconnection
+      props.onLanguageChange('javascript')
     }
   }
 
@@ -56,9 +75,9 @@ const LangSwitch: Component<LangSwitchProps> = props => {
           onClick={handlePostgresClick}
           isActive={props.currentLanguage === 'postgres'}
           icon={<SiPostgresql size={16} />}
-          activeClasses="bg-primary text-primary-foreground"
-          hoverClasses="hover:bg-primary/80"
-          connectionStatus={postgresConnectionStatus()} // Add connection status
+          activeClasses="bg-[#336791] text-white"
+          hoverClasses="hover:bg-[#336791]/80"
+          connectionStatus={props.postgresConnectionStatus}
         />
       </div>
 
@@ -66,6 +85,12 @@ const LangSwitch: Component<LangSwitchProps> = props => {
         open={showConnectionDialog()}
         onOpenChange={setShowConnectionDialog}
         onConnect={handleConnectionSuccess}
+      />
+
+      <PostgresDisconnectDialog
+        open={showDisconnectDialog()}
+        onOpenChange={setShowDisconnectDialog}
+        onDisconnect={handleDisconnectionSuccess}
       />
     </>
   )
