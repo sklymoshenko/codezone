@@ -12,8 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	pgxUUID "github.com/vgarvardt/pgx-google-uuid/v5"
 )
 
 // PostgreSQLExecutor implements PostgreSQL execution using pgx
@@ -130,6 +132,12 @@ func (p *PostgreSQLExecutor) ensureConnection(ctx context.Context) error {
 	if err != nil {
 		log.Printf("PostgreSQL Executor: Invalid connection configuration: %v", err)
 		return fmt.Errorf("invalid connection configuration: %w", err)
+	}
+
+	// Register UUID type handler
+	poolConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		pgxUUID.Register(conn.TypeMap())
+		return nil
 	}
 
 	// Set reasonable pool settings
@@ -282,7 +290,11 @@ func (p *PostgreSQLExecutor) convertValue(val interface{}) interface{} {
 	}
 
 	switch v := val.(type) {
+	case uuid.UUID:
+		// Google UUID is now handled automatically by pgx-google-uuid
+		return v.String()
 	case []byte:
+		// Fallback for other byte arrays
 		return string(v)
 	case time.Time:
 		return v.Format(time.RFC3339)

@@ -102,14 +102,14 @@ const Main: Component = () => {
         />
       </div>
 
-      <div class="flex-grow">
+      <div class="flex-grow h-full">
         <Resizable
           orientation="horizontal"
           class="h-full w-full"
           sizes={panelSizes()}
           onSizesChange={handlePanelSizesChange}
         >
-          <ResizablePanel class="min-w-[400px]">
+          <ResizablePanel class="min-w-[400px] h-full">
             <Editor
               language={language()}
               onLanguageChange={handleLanguageChange}
@@ -120,8 +120,15 @@ const Main: Component = () => {
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel class="min-w-[200px]">
-            <Show when={executionResult() || language() === 'postgres'}>
+          <ResizablePanel class="min-w-[200px] h-full flex flex-col">
+            <Show
+              when={executionResult() || language() === 'postgres'}
+              fallback={
+                <div class="h-full bg-muted/10 flex items-center justify-center text-muted-foreground">
+                  No output
+                </div>
+              }
+            >
               <Output
                 isExecuting={isExecuting()}
                 executionResult={executionResult()}

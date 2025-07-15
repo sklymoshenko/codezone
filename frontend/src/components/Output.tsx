@@ -11,22 +11,40 @@ type OutputProps = {
 
 const Output = (props: OutputProps) => {
   return (
-    <div class="relative flex-shrink-0 h-full p-4">
-      <div class="absolute bottom-0 right-0 p-2 rounded-tl text-xs text-muted-foreground tracking-wide font-mono flex items-center gap-2">
-        <Show
-          when={props.isExecuting}
-          fallback={
-            <Show when={props.executionResult?.durationString}>
-              <span>
-                Output{' '}
-                {props.executionResult?.durationString &&
-                  ` (${props.executionResult.durationString})`}
-              </span>
-            </Show>
-          }
-        >
-          <span class="italic">Running...</span>
+    <div class="w-full h-full flex flex-col bg-background">
+      {/* Main scrollable content area with no padding, let pre handle spacing */}
+      <div class="flex-1 overflow-auto font-mono text-base leading-normal">
+        <Show when={props.executionResult?.output}>
+          <pre class="text-foreground whitespace-pre-wrap break-words m-0 p-4">
+            {props.executionResult?.output}
+          </pre>
         </Show>
+        <Show when={props.executionResult?.error}>
+          <pre class="text-destructive whitespace-pre-wrap break-words m-0 p-4">
+            {props.executionResult?.error}
+          </pre>
+        </Show>
+      </div>
+
+      {/* Status bar */}
+      <div class="flex-shrink-0 p-2 border-t bg-background/95 backdrop-blur text-xs text-muted-foreground tracking-wide font-mono flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <Show
+            when={props.isExecuting}
+            fallback={
+              <Show when={props.executionResult?.durationString}>
+                <span>
+                  Output{' '}
+                  {props.executionResult?.durationString &&
+                    ` (${props.executionResult.durationString})`}
+                </span>
+              </Show>
+            }
+          >
+            <span class="italic">Running...</span>
+          </Show>
+        </div>
+
         <Show when={props.language === 'postgres'}>
           <div class="p-2 rounded-md border bg-card">
             <div class="flex items-center gap-2">
@@ -46,18 +64,6 @@ const Output = (props: OutputProps) => {
               </span>
             </div>
           </div>
-        </Show>
-      </div>
-      <div class="overflow-auto px-2 font-mono text-base leading-normal">
-        <Show when={props.executionResult?.output}>
-          <pre class="text-foreground whitespace-pre-wrap">
-            {props.executionResult?.output}
-          </pre>
-        </Show>
-        <Show when={props.executionResult?.error}>
-          <pre class="text-destructive whitespace-pre-wrap">
-            {props.executionResult?.error}
-          </pre>
         </Show>
       </div>
     </div>
