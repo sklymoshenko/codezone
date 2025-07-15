@@ -9,7 +9,7 @@ type OutputProps = {
 const Output = (props: OutputProps) => {
   return (
     <div class="relative flex-shrink-0 h-full p-4">
-      <div class="absolute bottom-0 right-0 p-2 rounded-tl text-xs text-gray-300 tracking-wide font-mono">
+      <div class="absolute bottom-0 right-0 p-2 rounded-tl text-xs text-muted-foreground tracking-wide font-mono">
         <Show
           when={props.isExecuting}
           fallback={
@@ -25,12 +25,12 @@ const Output = (props: OutputProps) => {
       </div>
       <div class="overflow-auto px-2 font-mono text-base leading-normal">
         <Show when={props.executionResult?.output}>
-          <pre class="text-gray-200 whitespace-pre-wrap">
+          <pre class="text-foreground whitespace-pre-wrap">
             {props.executionResult?.output}
           </pre>
         </Show>
         <Show when={props.executionResult?.error}>
-          <pre class="text-red-400 whitespace-pre-wrap">
+          <pre class="text-destructive whitespace-pre-wrap">
             {props.executionResult?.error}
           </pre>
         </Show>

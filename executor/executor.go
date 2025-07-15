@@ -75,6 +75,13 @@ func (em *ExecutionManager) GetSupportedLanguages() []Language {
 	return languages
 }
 
+// GetExecutor returns the executor for a specific language
+func (em *ExecutionManager) GetExecutor(lang Language) Executor {
+	em.mu.RLock()
+	defer em.mu.RUnlock()
+	return em.executors[lang]
+}
+
 // Cleanup releases all executor resources
 func (em *ExecutionManager) Cleanup() {
 	em.mu.Lock()

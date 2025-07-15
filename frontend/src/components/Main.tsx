@@ -1,7 +1,7 @@
 import { Component, createResource, createSignal, Show } from 'solid-js'
 import type { executor } from 'wailsjs/go/models'
 import { Environment, type EnvironmentInfo } from 'wailsjs/runtime'
-import type { Language } from '../types'
+import type { Language, PostgresConnectionStatus } from '../types'
 import { debounce } from '../utils/debounce'
 import {
   getStoredPanelSizes,
@@ -20,6 +20,8 @@ const Main: Component = () => {
   const [executionResult, setExecutionResult] =
     createSignal<executor.ExecutionResult | null>(null)
   const [isExecuting, setIsExecuting] = createSignal(false)
+  const [postgresConnectionStatus] =
+    createSignal<PostgresConnectionStatus>('disconnected')
 
   // Language state management
   const storedLang = locStorage.get('selectedLanguage')
@@ -55,6 +57,7 @@ const Main: Component = () => {
         <LangSwitch
           currentLanguage={language()}
           onLanguageChange={handleLanguageChange}
+          postgresConnectionStatus={postgresConnectionStatus()}
         />
       </div>
 

@@ -62,3 +62,37 @@ func (a *App) GetSupportedLanguages() []executor.Language {
 func (a *App) RefreshExecutor(lang executor.Language) error {
 	return a.execMgr.RefreshExecutor(lang)
 }
+
+// TestPostgreSQLConnection tests a PostgreSQL connection configuration
+func (a *App) TestPostgreSQLConnection(config *executor.PostgreSQLConfig) (bool, error) {
+	if a.execMgr == nil {
+		return false, fmt.Errorf("execution manager not initialized")
+	}
+
+	// Get the PostgreSQL executor
+	pgExecutor, ok := a.execMgr.GetExecutor(executor.PostgreSQL).(*executor.PostgreSQLExecutor)
+	if !ok {
+		return false, fmt.Errorf("PostgreSQL executor not available")
+	}
+
+	// Test the connection
+	err := pgExecutor.TestConnection(a.ctx, config)
+	return err == nil, err
+}
+
+// SetPostgreSQLConfig sets the PostgreSQL connection configuration
+func (a *App) SetPostgreSQLConfig(config *executor.PostgreSQLConfig) error {
+	if a.execMgr == nil {
+		return fmt.Errorf("execution manager not initialized")
+	}
+
+	// Get the PostgreSQL executor
+	pgExecutor, ok := a.execMgr.GetExecutor(executor.PostgreSQL).(*executor.PostgreSQLExecutor)
+	if !ok {
+		return fmt.Errorf("PostgreSQL executor not available")
+	}
+
+	// Set the configuration
+	pgExecutor.SetConfig(config)
+	return nil
+}

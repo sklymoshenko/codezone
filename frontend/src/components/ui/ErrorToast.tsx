@@ -15,19 +15,19 @@ export function showErrorToast(props: ErrorToastProps) {
     <ToastPrimitive.Root
       toastId={data.toastId}
       duration={props.duration || 8000}
-      class="group pointer-events-auto relative flex w-full max-w-md items-stretch overflow-hidden rounded-xl shadow-lg bg-gray-800"
+      class="group pointer-events-auto relative flex w-full max-w-md items-stretch overflow-hidden rounded-xl shadow-lg bg-card border"
     >
       {/* Left section - Dark theme content */}
-      <div class="flex-1 bg-gray-800 p-2 flex items-start space-x-3">
+      <div class="flex-1 bg-card p-2 flex items-start space-x-3">
         {/* Error Icon */}
-        <BiRegularErrorAlt class="w-12 h-12 text-red-500" />
+        <BiRegularErrorAlt class="w-12 h-12 text-destructive" />
 
         {/* Content */}
         <div class="flex-1 min-w-0">
-          <ToastPrimitive.Title class="text-sm font-semibold text-white">
+          <ToastPrimitive.Title class="text-sm font-semibold text-card-foreground">
             {props.title}
           </ToastPrimitive.Title>
-          <ToastPrimitive.Description class="mt-1 text-xs text-gray-300">
+          <ToastPrimitive.Description class="mt-1 text-xs text-muted-foreground">
             {props.description}
           </ToastPrimitive.Description>
           {props.actionLabel && props.actionUrl && (
@@ -35,7 +35,7 @@ export function showErrorToast(props: ErrorToastProps) {
               onClick={() => {
                 BrowserOpenURL(props.actionUrl!)
               }}
-              class="mt-2 inline-flex items-center text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              class="mt-2 inline-flex items-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
             >
               {props.actionLabel} →
             </button>
@@ -44,7 +44,7 @@ export function showErrorToast(props: ErrorToastProps) {
       </div>
 
       {/* Close button */}
-      <ToastPrimitive.CloseButton class="absolute right-2 top-2 text-gray-400 hover:text-white transition-colors">
+      <ToastPrimitive.CloseButton class="absolute right-2 top-2 text-muted-foreground hover:text-foreground transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"

@@ -2,7 +2,7 @@ import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import { Component, createEffect, createSignal } from 'solid-js'
 import { ExecuteCode, RefreshExecutor } from 'wailsjs/go/main/App'
-import type { executor } from 'wailsjs/go/models'
+import { executor } from 'wailsjs/go/models'
 import type { Language } from '../types'
 import { debounce } from '../utils/debounce'
 import { locStorage } from '../utils/locStorage'
@@ -84,11 +84,13 @@ const Editor: Component<EditorProps> = props => {
 
     props.onExecutionStart()
     try {
-      const result = await ExecuteCode({
-        code: codeToExecute,
-        language: lang,
-        timeout: 0 // 0 tells the backend to use its default timeout.
-      })
+      const result = await ExecuteCode(
+        new executor.ExecutionConfig({
+          code: codeToExecute,
+          language: lang,
+          timeout: 0 // 0 tells the backend to use its default timeout.
+        })
+      )
 
       // // Handle Go not installed error (exit code 150)
       if (!result.error && result.exitCode === 150 && lang === 'go') {
@@ -105,14 +107,14 @@ const Editor: Component<EditorProps> = props => {
       if (errorMessage.includes('executor is busy')) {
         // It's expected that some requests will be discarded. Do nothing.
       } else {
-        const errorResult = {
+        const errorResult = new executor.ExecutionResult({
           output: '',
           error: errorMessage,
           exitCode: 1,
           duration: 0,
           durationString: '0s',
           language: lang
-        }
+        })
 
         props.onExecutionResult(errorResult)
       }
