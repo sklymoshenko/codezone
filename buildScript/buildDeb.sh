@@ -8,9 +8,7 @@ APP_NAME="codezone"
 VERSION="1.0.0"
 ARCH="amd64"
 MAINTAINER="Stanislav Klymoshenko"
-EMAIL="s.klymoshenko@gmail.com"
 DESCRIPTION="Code Zone - A desktop code playground for JavaScript, Go, and SQL."
-HOMEPAGE="https://github.com/your-repo/codezone-wails" # <-- TODO: Update this URL
 
 # --- Script ---
 
@@ -40,9 +38,8 @@ cat > packaging/DEBIAN/control << EOF
 Package: $APP_NAME
 Version: $VERSION
 Architecture: $ARCH
-Maintainer: $MAINTAINER <$EMAIL>
+Maintainer: $MAINTAINER
 Description: $DESCRIPTION
-Homepage: $HOMEPAGE
 Depends: libwebkit2gtk-4.0-37, libgtk-3-0
 EOF
 

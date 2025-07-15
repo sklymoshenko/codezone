@@ -1,3 +1,7 @@
+// Copyright (c) 2024-2025 Stanislav Klymoshenko
+// Licensed under the MIT License. See LICENSE file for details.
+// This file uses v8go (BSD-3-Clause licensed by Roger Peppe)
+
 package executor
 
 import (

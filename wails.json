@@ -7,8 +7,7 @@
   "frontend:dev:watcher": "bun run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "Stanislav Klymoshenko",
-    "email": "s.klymoshenko@gmail.com"
+    "name": "Stanislav Klymoshenko"
   },
   "info": {
     "companyName": "Stanislav Klymoshenko",
@@ -19,7 +18,7 @@
   "linux": {
     "icon": "appicon.png",
     "package_name": "codezone",
-    "maintainer": "Stanislav Klymoshenko <s.klymoshenko@gmail.com>",
+    "maintainer": "Stanislav Klymoshenko",
     "description": "A desktop code playground for JavaScript, Go, and SQL.",
     "debpkg": {
       "depends": "golang-go (>= 1.19)"

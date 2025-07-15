@@ -1,3 +1,6 @@
+// Copyright (c) 2024-2025 Stanislav Klymoshenko
+// Licensed under the MIT License. See LICENSE file for details.
+
 package executor
 
 import (

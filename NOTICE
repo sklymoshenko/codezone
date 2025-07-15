@@ -1,0 +1,29 @@
+CodeZone - Code Playground Application
+Copyright (c) 2024-2025 Stanislav Klymoshenko
+
+================================================================================
+
+This software contains components from the following projects:
+
+V8 JavaScript Engine
+Copyright 2006-2023 the V8 project authors
+Licensed under the BSD-3-Clause License
+https://v8.dev/
+
+v8go - Go bindings for V8 JavaScript Engine  
+ Copyright (c) 2019 Roger Peppe
+Licensed under the BSD-3-Clause License
+https://github.com/rogchap/v8go
+
+Wails - Build desktop apps using Go & Web Technologies
+Copyright (c) 2019 Lea Anthony
+Licensed under the MIT License
+https://wails.io/
+
+Additional third-party packages:
+
+- Frontend packages: See frontend/package.json for complete list
+- Go modules: See go.mod for complete list
+
+All components are used in accordance with their respective licenses.
+For full license texts, see the LICENSE file.
