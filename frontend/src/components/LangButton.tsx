@@ -8,14 +8,14 @@ interface LangButtonProps {
   hoverClasses: string
 }
 
-const LangButton: Component<LangButtonProps> = (props) => {
+const LangButton: Component<LangButtonProps> = props => {
   return (
     <button
       onClick={props.onClick}
-      class={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${props.hoverClasses} cursor-pointer rounded-md`}
+      class={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${props.hoverClasses} cursor-pointer rounded-md`}
       classList={{
         'bg-gray-700 text-white': !props.isActive,
-        [props.activeClasses]: props.isActive,
+        [props.activeClasses]: props.isActive
       }}
     >
       {props.icon}
@@ -23,4 +23,4 @@ const LangButton: Component<LangButtonProps> = (props) => {
   )
 }
 
-export default LangButton 
+export default LangButton
