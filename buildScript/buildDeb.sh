@@ -45,7 +45,8 @@ EOF
 
 # 5. Build the .deb package
 echo "--> Building .deb package..."
-dpkg-deb --build --root-owner-group packaging ${APP_NAME}_${VERSION}_${ARCH}.deb
+DEB_NAME="${APP_NAME}_${VERSION}_${ARCH}.deb"
+dpkg-deb --build --root-owner-group packaging ${DEB_NAME}
 
 # 6. Clean up temporary directories
 echo "--> Cleaning up..."
@@ -53,4 +54,9 @@ rm -rf build
 rm -rf packaging
 
 echo "--- Build Complete ---"
-echo "Package created: ${APP_NAME}_${VERSION}_${ARCH}.deb" 
+echo "Package created: ${DEB_NAME}"
+
+# Send the filename to GitHub Actions
+if [ -n "$GITHUB_OUTPUT" ]; then
+  echo "deb_path=${DEB_NAME}" >> "$GITHUB_OUTPUT"
+fi 
