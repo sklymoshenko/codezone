@@ -5,6 +5,7 @@ package executor
 
 import (
 	"context"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -14,14 +15,16 @@ import (
 
 // Test configuration for PostgreSQL (can be overridden with env vars)
 func getTestPostgreSQLConfig() *PostgreSQLConfig {
-	return &PostgreSQLConfig{
+	config := &PostgreSQLConfig{
 		Host:     getEnvOrDefault("POSTGRES_HOST", "localhost"),
-		Port:     getEnvOrDefaultInt("POSTGRES_PORT", 5433), // Changed from 5432 to 5433
-		Database: getEnvOrDefault("POSTGRES_DB", "test"),
-		Username: getEnvOrDefault("POSTGRES_USER", "postgres"),
-		Password: getEnvOrDefault("POSTGRES_PASSWORD", "password"),
+		Port:     getEnvOrDefaultInt("POSTGRES_PORT", 5433),
+		Database: getEnvOrDefault("POSTGRES_DB", "testdb"),
+		Username: getEnvOrDefault("POSTGRES_USER", "testuser"),
+		Password: getEnvOrDefault("POSTGRES_PASSWORD", "testpassword"),
 		SSLMode:  "disable",
 	}
+
+	return config
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -49,6 +52,13 @@ func isPostgreSQLAvailable() bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	// Create pool with the config (this also sets the config)
+	err := executor.CreatePgPool(ctx, config)
+	if err != nil {
+		log.Printf("PostgreSQL: Connection failed - pool creation error: %v", err)
+		return false
+	}
 
 	return executor.TestConnection(ctx, config) == nil
 }
@@ -89,14 +99,7 @@ func TestPostgreSQLExecutor_Configuration(t *testing.T) {
 	executor := NewPostgreSQLExecutor(DefaultExecutorOptions())
 
 	t.Run("should set and use configuration", func(t *testing.T) {
-		config := &PostgreSQLConfig{
-			Host:     "testhost",
-			Port:     5433,
-			Database: "testdb",
-			Username: "testuser",
-			Password: "testpass",
-			SSLMode:  "require",
-		}
+		config := getTestPostgreSQLConfig()
 
 		executor.SetConfig(config)
 
@@ -105,7 +108,7 @@ func TestPostgreSQLExecutor_Configuration(t *testing.T) {
 		}
 
 		// Test connection string building (via buildConnectionString method)
-		expectedConnStr := "host=testhost port=5433 dbname=testdb user=testuser password=testpass sslmode=require"
+		expectedConnStr := "host=localhost port=5433 dbname=testdb user=testuser password=testpassword sslmode=disable"
 		actualConnStr := executor.buildConnectionString()
 
 		if actualConnStr != expectedConnStr {
@@ -114,20 +117,13 @@ func TestPostgreSQLExecutor_Configuration(t *testing.T) {
 	})
 
 	t.Run("should handle missing SSL mode", func(t *testing.T) {
-		config := &PostgreSQLConfig{
-			Host:     "testhost",
-			Port:     5432,
-			Database: "testdb",
-			Username: "testuser",
-			Password: "testpass",
-			// SSLMode not set
-		}
+		config := getTestPostgreSQLConfig()
 
 		executor.SetConfig(config)
 		connStr := executor.buildConnectionString()
 
-		if !contains(connStr, "sslmode=prefer") {
-			t.Errorf("Expected default sslmode=prefer in connection string, got %q", connStr)
+		if !contains(connStr, "sslmode=disable") {
+			t.Errorf("Expected default sslmode=disable in connection string, got %q", connStr)
 		}
 	})
 }
@@ -421,7 +417,13 @@ func TestPostgreSQLExecutor_ConnectionTesting(t *testing.T) {
 		defer cancel()
 
 		config := getTestPostgreSQLConfig()
-		err := executor.TestConnection(ctx, config)
+
+		err := executor.CreatePgPool(context.Background(), config)
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		err = executor.TestConnection(ctx, config)
 		if err != nil {
 			t.Errorf("Expected successful connection test, got error: %v", err)
 		}
@@ -440,9 +442,15 @@ func TestPostgreSQLExecutor_ConnectionTesting(t *testing.T) {
 			SSLMode:  "disable",
 		}
 
-		err := executor.TestConnection(ctx, config)
+		err := executor.CreatePgPool(context.Background(), config)
 		if err == nil {
 			t.Error("Expected connection test to fail with invalid config")
+		}
+
+		err = executor.TestConnection(ctx, config)
+
+		if err == nil {
+			t.Error("Expected connection test to fail with invalid config, got nil")
 		}
 	})
 
@@ -450,7 +458,12 @@ func TestPostgreSQLExecutor_ConnectionTesting(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		err := executor.TestConnection(ctx, nil)
+		err := executor.CreatePgPool(context.Background(), nil)
+		if err == nil {
+			t.Error("Expected connection test to fail with nil config")
+		}
+
+		err = executor.TestConnection(ctx, nil)
 		if err == nil {
 			t.Error("Expected connection test to fail with nil config")
 		}

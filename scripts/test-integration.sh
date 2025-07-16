@@ -15,7 +15,7 @@ POSTGRES_VERSION="15"
 POSTGRES_PASSWORD="testpassword"
 POSTGRES_DB="testdb"
 POSTGRES_USER="testuser"
-POSTGRES_PORT="5433" # Changed from 5432 to 5433 to avoid conflicts with other services
+POSTGRES_PORT="5433" # Changed from 5432 to 5432 to avoid conflicts with other services
 MAX_WAIT_TIME=30
 
 log_info() {
@@ -249,7 +249,7 @@ print_usage() {
     echo ""
     echo "Options:"
     echo "  -v, --version VERSION    PostgreSQL version (default: 15)"
-    echo "  -p, --port PORT         PostgreSQL port (default: 5432)"
+    echo "  -p, --port PORT         PostgreSQL port (default: 5433)"
     echo "  -k, --keep              Keep container running after tests"
     echo "  -r, --recreate          Force recreate container even if healthy"
     echo "  -h, --help              Show this help message"
