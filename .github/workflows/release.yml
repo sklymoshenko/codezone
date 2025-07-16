@@ -29,7 +29,7 @@ jobs:
 
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@2.10.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
       - name: Install dependencies
         run: |
