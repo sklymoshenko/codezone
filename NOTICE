@@ -20,6 +20,16 @@ Copyright (c) 2019 Lea Anthony
 Licensed under the MIT License
 https://wails.io/
 
+TypeScript
+Copyright (c) Microsoft Corporation
+Licensed under the Apache License 2.0
+https://www.typescriptlang.org/
+
+esbuild
+Copyright (c) 2020 Evan Wallace
+Licensed under the MIT License
+https://esbuild.github.io/
+
 Additional third-party packages:
 
 - Frontend packages: See frontend/package.json for complete list

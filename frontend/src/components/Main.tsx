@@ -31,15 +31,13 @@ const Main: Component = () => {
   const [postgresConnectionStatus, setPostgresConnectionStatus] =
     createSignal<PostgresConnectionStatus>('disconnected')
 
-  // Language state management
   const storedLang = locStorage.get('selectedLanguage')
   const initialLang =
-    storedLang && isValidLanguage(storedLang) ? storedLang : 'javascript'
+    storedLang && isValidLanguage(storedLang) ? storedLang : 'typescript'
   const [language, setLanguage] = createSignal<Language>(initialLang)
 
   const [panelSizes, setPanelSizes] = createSignal<number[]>(getStoredPanelSizes())
 
-  // PostgreSQL connection status monitoring
   let statusInterval: ReturnType<typeof setInterval> | undefined
 
   const checkConnectionStatus = async () => {

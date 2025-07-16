@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os/exec"
+	"strings"
 	"time"
 
 	"codezone-wails/executor"
@@ -64,6 +66,22 @@ func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+func (a *App) GetGoVersion() string {
+	cmd := exec.Command("go", "version")
+	output, err := cmd.Output()
+	if err != nil {
+		return "Error getting Go version"
+	}
+	version := strings.TrimSpace(string(output))
+	parts := strings.Fields(version)
+	if len(parts) >= 3 {
+		// Expected format: "go version go1.22.4 linux/amd64"
+		// Extract "go1.22.4" and remove "go" prefix
+		return "go v" + strings.TrimPrefix(parts[2], "go")
+	}
+	return "Unknown Go version"
 }
 
 // ExecuteCode executes code using the persistent execution manager.

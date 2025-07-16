@@ -10,7 +10,7 @@ import (
 
 // BenchmarkJavaScriptExecutor_SimpleExecution benchmarks basic code execution
 func BenchmarkJavaScriptExecutor_SimpleExecution(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `console.log("Hello, World!");`
 	ctx := context.Background()
 
@@ -25,7 +25,7 @@ func BenchmarkJavaScriptExecutor_SimpleExecution(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_MathOperations benchmarks mathematical computations
 func BenchmarkJavaScriptExecutor_MathOperations(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		let result = 0;
 		for (let i = 0; i < 1000; i++) {
@@ -46,7 +46,7 @@ func BenchmarkJavaScriptExecutor_MathOperations(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_StringOperations benchmarks string manipulation
 func BenchmarkJavaScriptExecutor_StringOperations(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		let str = "Hello";
 		for (let i = 0; i < 100; i++) {
@@ -67,7 +67,7 @@ func BenchmarkJavaScriptExecutor_StringOperations(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_ArrayOperations benchmarks array manipulations
 func BenchmarkJavaScriptExecutor_ArrayOperations(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		let arr = [];
 		for (let i = 0; i < 1000; i++) {
@@ -89,7 +89,7 @@ func BenchmarkJavaScriptExecutor_ArrayOperations(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_ObjectOperations benchmarks object manipulations
 func BenchmarkJavaScriptExecutor_ObjectOperations(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		let obj = {};
 		for (let i = 0; i < 100; i++) {
@@ -111,7 +111,7 @@ func BenchmarkJavaScriptExecutor_ObjectOperations(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_ConsoleOutput benchmarks console logging overhead
 func BenchmarkJavaScriptExecutor_ConsoleOutput(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		for (let i = 0; i < 50; i++) {
 			console.log("Log message", i);
@@ -130,7 +130,7 @@ func BenchmarkJavaScriptExecutor_ConsoleOutput(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_ErrorHandling benchmarks error scenarios
 func BenchmarkJavaScriptExecutor_ErrorHandling(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		try {
 			throw new Error("Test error");
@@ -151,7 +151,7 @@ func BenchmarkJavaScriptExecutor_ErrorHandling(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_CodeSizes benchmarks different code sizes
 func BenchmarkJavaScriptExecutor_CodeSizes(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	ctx := context.Background()
 
 	sizes := []struct {
@@ -187,7 +187,7 @@ func BenchmarkJavaScriptExecutor_CodeSizes(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_MemoryUsage benchmarks memory allocation patterns
 func BenchmarkJavaScriptExecutor_MemoryUsage(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		// Create and garbage collect objects
 		for (let i = 0; i < 100; i++) {
@@ -210,7 +210,7 @@ func BenchmarkJavaScriptExecutor_MemoryUsage(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_Parallel benchmarks concurrent executions
 func BenchmarkJavaScriptExecutor_Parallel(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `console.log("Parallel execution", Math.random());`
 	ctx := context.Background()
 
@@ -230,7 +230,7 @@ func BenchmarkJavaScriptExecutor_ContextSetup(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		executor := NewJavaScriptExecutor(opts)
+		executor := NewTypeScriptExecutor(opts)
 		code := `console.log("setup test");`
 		ctx := context.Background()
 
@@ -248,7 +248,7 @@ func BenchmarkJavaScriptExecutor_ContextSetup(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_ComplexAlgorithm benchmarks computational algorithms
 func BenchmarkJavaScriptExecutor_ComplexAlgorithm(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		// Fibonacci sequence calculation
 		function fibonacci(n) {
@@ -272,7 +272,7 @@ func BenchmarkJavaScriptExecutor_ComplexAlgorithm(b *testing.B) {
 
 // BenchmarkJavaScriptExecutor_JSONOperations benchmarks JSON parsing/stringifying
 func BenchmarkJavaScriptExecutor_JSONOperations(b *testing.B) {
-	executor := NewJavaScriptExecutor(DefaultExecutorOptions())
+	executor := NewTypeScriptExecutor(DefaultExecutorOptions())
 	code := `
 		let data = {
 			users: [],
@@ -329,7 +329,7 @@ func BenchmarkExecutionManager(b *testing.B) {
 
 	config := ExecutionConfig{
 		Code:     `console.log("Manager test", Math.random());`,
-		Language: JavaScript,
+		Language: TypeScript,
 		Timeout:  0,
 	}
 
@@ -352,7 +352,7 @@ func BenchmarkExecutionManager_Parallel(b *testing.B) {
 
 	config := ExecutionConfig{
 		Code:     `console.log("Parallel manager test", Math.random());`,
-		Language: JavaScript,
+		Language: TypeScript,
 		Timeout:  0,
 	}
 
