@@ -11,9 +11,10 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      "wailsjs/*": ["./wailsjs/*"]
+      "wailsjs/*": ["./wailsjs/*"],
+      "lib.esnext.d.ts": ["./public/lib.esnext.d.ts"]
     }
   },
-  "include": ["src", "wailsjs"],
+  "include": ["src", "wailsjs", "src/types.ts", "public/lib.esnext.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

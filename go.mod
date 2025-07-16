@@ -5,6 +5,7 @@ go 1.23.0
 toolchain go1.24.2
 
 require (
+	github.com/evanw/esbuild v0.25.6
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.6.0
 	github.com/wailsapp/wails/v2 v2.10.2

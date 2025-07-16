@@ -24,7 +24,7 @@ func NewExecutionManager(opts ExecutorOptions) *ExecutionManager {
 	}
 
 	// Initialize all supported executors
-	manager.executors[JavaScript] = NewJavaScriptExecutor(opts)
+	manager.executors[TypeScript] = NewTypeScriptExecutor(opts)
 	manager.executors[Go] = NewGoExecutor(opts)
 	manager.executors[PostgreSQL] = NewPostgreSQLExecutor(opts)
 
@@ -102,8 +102,8 @@ func (em *ExecutionManager) RefreshExecutor(lang Language) error {
 
 	// Re-create the specific executor
 	switch lang {
-	case JavaScript:
-		em.executors[JavaScript] = NewJavaScriptExecutor(em.options)
+	case TypeScript:
+		em.executors[TypeScript] = NewTypeScriptExecutor(em.options)
 	case Go:
 		em.executors[Go] = NewGoExecutor(em.options)
 	default:

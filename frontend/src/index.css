@@ -53,8 +53,8 @@
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 90% 45%;
+    --destructive-foreground: 0 0% 100%;
     --info: 204 94% 94%;
     --info-foreground: 199 89% 48%;
     --success: 145 85% 40%;

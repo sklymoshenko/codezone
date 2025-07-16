@@ -1,6 +1,7 @@
+import { validateTsCode } from '~/utils/validate'
 import hljs from 'highlight.js/lib/core'
-import javascript from 'highlight.js/lib/languages/javascript'
-import { Parser } from 'node-sql-parser'
+import typescript from 'highlight.js/lib/languages/typescript'
+import { Parser } from 'node-sql-parser/build/postgresql'
 import { FaSolidPlay } from 'solid-icons/fa'
 import { Component, createEffect, createMemo, createSignal, Show } from 'solid-js'
 import { ExecuteCode, RefreshExecutor } from 'wailsjs/go/main/App'
@@ -11,7 +12,7 @@ import { locStorage } from '../utils/locStorage'
 import { useUndo } from '../utils/useUndo'
 import { showErrorToast } from './ui/ErrorToast'
 
-hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('typescript', typescript)
 
 // Helper function to show Go not installed toast
 const showGoNotInstalledToast = () => {
@@ -25,8 +26,8 @@ const showGoNotInstalledToast = () => {
 }
 
 const defaultCode: Record<Language, string> = {
-  javascript:
-    '// Write your code here\n\nfunction hello() {\n  console.log("Hello, World!");\n}\n\nhello()\n',
+  typescript:
+    '// TypeScript example\n\nfunction greet(name: string): string {\n  return `Hello, ${name}!`\n}\n\nconsole.log(greet("World"))\n',
   go: `package main
 
 import "fmt"
@@ -81,7 +82,7 @@ const Editor: Component<EditorProps> = props => {
 
     try {
       // Try to parse as PostgreSQL
-      sqlParser.astify(sqlCode, { database: 'PostgresQL' })
+      sqlParser.astify(sqlCode)
       return { isValid: true, error: null }
     } catch (error) {
       // Parser throws error for invalid SQL
@@ -192,6 +193,10 @@ const Editor: Component<EditorProps> = props => {
   })
 
   createEffect(() => {
+    if (props.language !== 'postgres') {
+      return
+    }
+
     if (!hasExecutableSQL() || !textareaRef) {
       setButtonPosition({ display: false, top: 0, left: 0 })
       return
@@ -243,14 +248,35 @@ const Editor: Component<EditorProps> = props => {
     })
   })
 
-  // Watch for language changes from parent (also handles initial execution)
+  const validateTs = (codeToValidate: string): boolean => {
+    const errors = validateTsCode(codeToValidate)
+    if (errors.length === 0) {
+      return true
+    }
+
+    const errorResult = new executor.ExecutionResult({
+      error: errors.join('\n'),
+      exitCode: 1,
+      duration: 0,
+      durationString: '0s',
+      language: 'typescript'
+    })
+    props.onExecutionResult(errorResult)
+    return false
+  }
+
   createEffect(() => {
     const newLang = props.language
     const newCode = getCodeForLang(newLang)
     setCode(newCode)
-    // Clear undo history when switching languages
     clear()
-    // Execute the code for the new language immediately
+    if (newLang === 'typescript') {
+      const isValid = validateTs(newCode)
+      if (!isValid) {
+        return
+      }
+    }
+
     void execute(newCode, newLang)
   })
 
@@ -263,7 +289,7 @@ const Editor: Component<EditorProps> = props => {
     }
 
     // Only execute for supported languages (javascript and go)
-    if (lang !== 'javascript' && lang !== 'go') {
+    if (lang !== 'typescript' && lang !== 'go') {
       return
     }
 
@@ -310,6 +336,12 @@ const Editor: Component<EditorProps> = props => {
 
   // Create a debounced version of the execute function.
   const debouncedExecute = debounce((codeToExecute: string, lang: Language) => {
+    if (lang === 'typescript') {
+      const isValid = validateTs(codeToExecute)
+      if (!isValid) {
+        return
+      }
+    }
     void execute(codeToExecute, lang)
   }, 700)
 

@@ -13,6 +13,7 @@ type Language string
 
 const (
 	JavaScript Language = "javascript"
+	TypeScript Language = "typescript"
 	Go         Language = "go"
 	PostgreSQL Language = "postgres"
 )

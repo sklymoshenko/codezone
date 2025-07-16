@@ -23,7 +23,9 @@ export default tseslint.config(
       'node_modules/**/*',
       '*.config.ts',
       '*.config.js',
-      '*.config.cjs'
+      '*.config.cjs',
+      'src/utils/validate.ts',
+      'public/typescript.js'
     ]
   },
   {

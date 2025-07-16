@@ -44,14 +44,14 @@ export const locStorage = {
 }
 
 export const isValidLanguage = (lang: string): lang is Language => {
-  return ['javascript', 'go', 'postgres'].includes(lang)
+  return ['typescript', 'go', 'postgres'].includes(lang)
 }
 
 // Panel size utilities
 export const getStoredPanelSizes = (): number[] => {
   const stored = locStorage.get<number[]>('panelSizes')
   // Default to 60% editor, 40% output
-  return stored && Array.isArray(stored) && stored.length === 2 ? stored : [0.6, 0.4]
+  return stored && Array.isArray(stored) && stored.length === 2 ? stored : [0.4, 0.6]
 }
 
 export const storePanelSizes = (sizes: number[]): void => {
