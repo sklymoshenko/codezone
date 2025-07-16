@@ -1,7 +1,15 @@
-import { Component, createResource, createSignal, Show } from 'solid-js'
-import type { executor } from 'wailsjs/go/models'
+import {
+  Component,
+  createResource,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show
+} from 'solid-js'
+import { GetPostgreSQLConnectionStatus } from 'wailsjs/go/main/App'
+import { executor } from 'wailsjs/go/models'
 import { Environment, type EnvironmentInfo } from 'wailsjs/runtime'
-import type { Language } from '../types'
+import type { Language, PostgresConnectionStatus } from '../types'
 import { debounce } from '../utils/debounce'
 import {
   getStoredPanelSizes,
@@ -10,16 +18,18 @@ import {
   storePanelSizes
 } from '../utils/locStorage'
 import Editor from './Editor'
-import LangSwitch from './LangSwitch'
 import Output from './Output'
-import TitleBar from './TitleBar'
+import LangSwitch from './ui/LangSwitch'
 import { Resizable, ResizableHandle, ResizablePanel } from './ui/resizable'
+import TitleBar, { TITLE_BAR_HEIGHT } from './ui/TitleBar'
 
 const Main: Component = () => {
   const [env] = createResource<EnvironmentInfo>(Environment)
   const [executionResult, setExecutionResult] =
     createSignal<executor.ExecutionResult | null>(null)
   const [isExecuting, setIsExecuting] = createSignal(false)
+  const [postgresConnectionStatus, setPostgresConnectionStatus] =
+    createSignal<PostgresConnectionStatus>('disconnected')
 
   // Language state management
   const storedLang = locStorage.get('selectedLanguage')
@@ -28,6 +38,33 @@ const Main: Component = () => {
   const [language, setLanguage] = createSignal<Language>(initialLang)
 
   const [panelSizes, setPanelSizes] = createSignal<number[]>(getStoredPanelSizes())
+
+  // PostgreSQL connection status monitoring
+  let statusInterval: ReturnType<typeof setInterval> | undefined
+
+  const checkConnectionStatus = async () => {
+    try {
+      const isConnected = await GetPostgreSQLConnectionStatus()
+      setPostgresConnectionStatus(isConnected ? 'connected' : 'disconnected')
+    } catch (err) {
+      console.error('Error checking PostgreSQL connection status:', err)
+      setPostgresConnectionStatus('disconnected')
+    }
+  }
+
+  onMount(() => {
+    // Initial status check
+    void checkConnectionStatus()
+
+    // Set up periodic status monitoring (every 5 seconds)
+    statusInterval = setInterval(() => void checkConnectionStatus(), 5000)
+  })
+
+  onCleanup(() => {
+    if (statusInterval) {
+      clearInterval(statusInterval)
+    }
+  })
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang)
@@ -44,6 +81,11 @@ const Main: Component = () => {
     }
   }
 
+  // Provide connection status refresh function to child components
+  const refreshConnectionStatus = () => {
+    void checkConnectionStatus()
+  }
+
   return (
     <main class="h-screen w-screen flex flex-col relative">
       <Show when={!env.loading && env()?.platform === 'linux'}>
@@ -55,29 +97,40 @@ const Main: Component = () => {
         <LangSwitch
           currentLanguage={language()}
           onLanguageChange={handleLanguageChange}
+          postgresConnectionStatus={postgresConnectionStatus()}
+          onConnectionChange={refreshConnectionStatus}
         />
       </div>
 
-      <div class="flex-grow">
+      <div
+        class={`flex-grow`}
+        style={{ 'max-height': `calc(100vh - ${TITLE_BAR_HEIGHT}px)` }}
+      >
         <Resizable
           orientation="horizontal"
           class="h-full w-full"
           sizes={panelSizes()}
           onSizesChange={handlePanelSizesChange}
         >
-          <ResizablePanel class="min-w-[400px]">
+          <ResizablePanel class="min-w-[400px] h-full">
             <Editor
               language={language()}
               onLanguageChange={handleLanguageChange}
               onExecutionResult={setExecutionResult}
               onExecutionStart={() => setIsExecuting(true)}
               onExecutionEnd={() => setIsExecuting(false)}
+              postgresConnectionStatus={postgresConnectionStatus()}
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel class="min-w-[200px]">
-            <Show when={executionResult()}>
-              <Output isExecuting={isExecuting()} executionResult={executionResult()!} />
+          <ResizablePanel class="min-w-[200px] h-full flex flex-col">
+            <Show when={executionResult() || language() === 'postgres'}>
+              <Output
+                isExecuting={isExecuting()}
+                executionResult={executionResult()}
+                language={language()}
+                postgresConnectionStatus={postgresConnectionStatus()}
+              />
             </Show>
           </ResizablePanel>
         </Resizable>

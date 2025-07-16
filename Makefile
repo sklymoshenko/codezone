@@ -1,4 +1,4 @@
-.PHONY: build-linux clean
+.PHONY: build-linux clean postgres-test
 
 # ====================================================================================
 # Build Commands
@@ -21,6 +21,14 @@ clean:
 	@rm -rf build
 	@rm -rf packaging
 	@echo "Cleanup complete."
+
+# ====================================================================================
+# Test Commands
+# ====================================================================================
+
+## postgres-test: Runs PostgreSQL integration tests (requires Docker).
+postgres-test:
+	@./scripts/test-integration.sh all
 
 ## help: Shows this help message.
 help:
