@@ -27,9 +27,21 @@ jobs:
         with:
           bun-version: 1.2.5
 
+      - name: Cache Frontend Dependencies
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-bun-modules-${{ hashFiles('frontend/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-modules-
+
+      - name: Install Frontend Dependencies
+        run: bun install --frozen-lockfile
+        working-directory: ./frontend
+
       - name: Install Wails CLI
         run: |
-          go install github.com/wailsapp/wails/v2/cmd/wails@2.10.2
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
 
       - name: Install dependencies
         run: |
