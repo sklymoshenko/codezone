@@ -27,6 +27,19 @@ jobs:
         with:
           bun-version: 1.2.5
 
+      - name: Cache bun dependencies
+        id: cache-bun-deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install Frontend Dependencies
+        run: bun install
+        working-directory: ./frontend
+
       - name: Install Wails CLI
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
