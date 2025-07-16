@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Code Zone
 Exec=/opt/codezone/codezone
-Icon=/opt/codezone/icon.png
+Icon=codezone
 Type=Application
 Categories=Utility;
-Comment=A desktop code playground for JavaScript, Go, and SQL. 
+Comment=A desktop code playground for JavaScript/Typescript, Go, and Postgres/SQL. 

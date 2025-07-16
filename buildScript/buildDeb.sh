@@ -16,7 +16,7 @@ echo "--- Starting Linux Debian Package Build ---"
 
 # 1. Build the Wails application
 echo "--> Building Wails binary..."
-wails build
+wails build -upx -upxflags --lzma
 
 # 2. Set up packaging directory
 echo "--> Creating packaging directory structure..."
