@@ -311,7 +311,7 @@ const Editor: Component<EditorProps> = props => {
   // Create a debounced version of the execute function.
   const debouncedExecute = debounce((codeToExecute: string, lang: Language) => {
     void execute(codeToExecute, lang)
-  }, 100)
+  }, 700)
 
   // Simplified highlighting effect (no validation logic needed here)
   createEffect(() => {
@@ -446,8 +446,7 @@ const Editor: Component<EditorProps> = props => {
   const _handleReset = async () => {
     try {
       await RefreshExecutor(props.language)
-      props.onExecutionResult(null) // Clear the output panel
-      // Re-run the current code in the new clean environment
+      props.onExecutionResult(null)
       void execute(code(), props.language)
     } catch (e) {
       console.error('Failed to reset environment:', e)
@@ -465,36 +464,19 @@ const Editor: Component<EditorProps> = props => {
       return
     }
 
-    console.log('Executing SQL:', statement)
-
-    // Start execution state
     props.onExecutionStart()
 
     try {
-      // Create execution config for PostgreSQL
       const config = new executor.ExecutionConfig({
         code: statement,
         language: 'postgres',
         timeout: 0 // Use default timeout
       })
 
-      // Execute the SQL query
       const result = await ExecuteCode(config)
 
-      // Console.log the full result
-      console.log('SQL Execution Result:', result)
-
-      // If there's SQL result data, log it in a more readable format
       if (result.sqlResult) {
-        console.log('Query Type:', result.sqlResult.queryType)
-        console.log('Execution Time:', result.sqlResult.executionTime)
-        console.log('Rows Affected:', result.sqlResult.rowsAffected)
-
         if (result.sqlResult?.columns && result.sqlResult?.rows) {
-          console.log('Columns:', result.sqlResult.columns)
-          console.log('Data Rows:', result.sqlResult.rows)
-
-          // Log in table format if there are results
           if (result.sqlResult.rows.length > 0) {
             console.table(
               result.sqlResult.rows.map(row => {
@@ -509,17 +491,13 @@ const Editor: Component<EditorProps> = props => {
         }
       }
 
-      // If there's an error, log it
       if (result.error) {
         console.error('SQL Error:', result.error)
       }
 
-      // Pass result to parent component for display in Output panel
       props.onExecutionResult(result)
     } catch (error) {
       console.error('Failed to execute SQL:', error)
-
-      // Create error result and pass to parent
       const errorResult = new executor.ExecutionResult({
         output: '',
         error: error instanceof Error ? error.message : String(error),
@@ -531,7 +509,6 @@ const Editor: Component<EditorProps> = props => {
 
       props.onExecutionResult(errorResult)
     } finally {
-      // End execution state
       props.onExecutionEnd()
     }
   }

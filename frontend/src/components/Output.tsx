@@ -1,6 +1,7 @@
 import { Language, PostgresConnectionStatus } from '~/types'
 import { Show } from 'solid-js'
 import type { executor } from 'wailsjs/go/models'
+import SQLTable from './ui/SQLTable'
 
 type OutputProps = {
   isExecuting: boolean
@@ -10,15 +11,46 @@ type OutputProps = {
 }
 
 const Output = (props: OutputProps) => {
+  const shouldShowTable = () => {
+    return (
+      props.language === 'postgres' &&
+      props.executionResult?.sqlResult &&
+      props.executionResult.sqlResult.queryType === 'SELECT' &&
+      props.executionResult.sqlResult.rows &&
+      props.executionResult.sqlResult.rows.length > 0
+    )
+  }
+
+  const getTableRows = () => {
+    if (!props.executionResult?.sqlResult?.rows) return []
+
+    return props.executionResult.sqlResult.rows.map(row =>
+      row.map(cell => {
+        if (cell === null || cell === undefined) return '--'
+        return String(cell)
+      })
+    )
+  }
+
   return (
     <div class="w-full h-full flex flex-col bg-background">
-      {/* Main scrollable content area with no padding, let pre handle spacing */}
       <div class="flex-1 overflow-auto font-mono text-base leading-normal">
-        <Show when={props.executionResult?.output}>
+        <Show when={shouldShowTable()}>
+          <SQLTable
+            columns={props.executionResult!.sqlResult!.columns}
+            rows={getTableRows()}
+            queryType={props.executionResult!.sqlResult!.queryType}
+            executionTime={props.executionResult!.durationString}
+            rowsCount={props.executionResult!.sqlResult!.rows.length}
+          />
+        </Show>
+
+        <Show when={!shouldShowTable() && props.executionResult?.output}>
           <pre class="text-foreground whitespace-pre-wrap break-words m-0 p-4">
             {props.executionResult?.output}
           </pre>
         </Show>
+
         <Show when={props.executionResult?.error}>
           <pre class="text-destructive whitespace-pre-wrap break-words m-0 p-4">
             {props.executionResult?.error}

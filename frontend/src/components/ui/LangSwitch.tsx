@@ -1,9 +1,9 @@
 import { SiGo, SiJavascript, SiPostgresql } from 'solid-icons/si'
 import { Component, createSignal } from 'solid-js'
-import type { Language, PostgresConnectionStatus } from '../types'
+import type { Language, PostgresConnectionStatus } from '../../types'
 import LangButton from './LangButton'
-import PostgresConnectionDialog from './ui/PostgresConnectionDialog'
-import PostgresDisconnectDialog from './ui/PostgresDisconnectDialog'
+import PostgresConnectionDialog from './PostgresConnectionDialog'
+import PostgresDisconnectDialog from './PostgresDisconnectDialog'
 
 type LangSwitchProps = {
   currentLanguage: Language

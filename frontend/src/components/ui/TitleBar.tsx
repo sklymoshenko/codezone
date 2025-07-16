@@ -6,6 +6,8 @@ import {
 import { Component } from 'solid-js'
 import { Quit, WindowMinimise, WindowToggleMaximise } from 'wailsjs/runtime'
 
+export const TITLE_BAR_HEIGHT = 24
+
 const TitleBar: Component = () => {
   return (
     <div

@@ -18,10 +18,10 @@ import {
   storePanelSizes
 } from '../utils/locStorage'
 import Editor from './Editor'
-import LangSwitch from './LangSwitch'
 import Output from './Output'
-import TitleBar from './TitleBar'
+import LangSwitch from './ui/LangSwitch'
 import { Resizable, ResizableHandle, ResizablePanel } from './ui/resizable'
+import TitleBar, { TITLE_BAR_HEIGHT } from './ui/TitleBar'
 
 const Main: Component = () => {
   const [env] = createResource<EnvironmentInfo>(Environment)
@@ -102,7 +102,10 @@ const Main: Component = () => {
         />
       </div>
 
-      <div class="flex-grow h-full">
+      <div
+        class={`flex-grow`}
+        style={{ 'max-height': `calc(100vh - ${TITLE_BAR_HEIGHT}px)` }}
+      >
         <Resizable
           orientation="horizontal"
           class="h-full w-full"
@@ -121,14 +124,7 @@ const Main: Component = () => {
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel class="min-w-[200px] h-full flex flex-col">
-            <Show
-              when={executionResult() || language() === 'postgres'}
-              fallback={
-                <div class="h-full bg-muted/10 flex items-center justify-center text-muted-foreground">
-                  No output
-                </div>
-              }
-            >
+            <Show when={executionResult() || language() === 'postgres'}>
               <Output
                 isExecuting={isExecuting()}
                 executionResult={executionResult()}

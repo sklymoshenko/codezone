@@ -6,6 +6,7 @@ package executor
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ import (
 func getTestPostgreSQLConfig() *PostgreSQLConfig {
 	return &PostgreSQLConfig{
 		Host:     getEnvOrDefault("POSTGRES_HOST", "localhost"),
-		Port:     5432,
+		Port:     getEnvOrDefaultInt("POSTGRES_PORT", 5433), // Changed from 5432 to 5433
 		Database: getEnvOrDefault("POSTGRES_DB", "test"),
 		Username: getEnvOrDefault("POSTGRES_USER", "postgres"),
 		Password: getEnvOrDefault("POSTGRES_PASSWORD", "password"),
@@ -26,6 +27,16 @@ func getTestPostgreSQLConfig() *PostgreSQLConfig {
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// Add this helper function for integer environment variables
+func getEnvOrDefaultInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }

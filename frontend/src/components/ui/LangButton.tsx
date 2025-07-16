@@ -1,5 +1,5 @@
 import { Show, type Component, type JSX } from 'solid-js'
-import type { PostgresConnectionStatus } from '../types'
+import type { PostgresConnectionStatus } from '../../types'
 
 interface LangButtonProps {
   onClick: () => void

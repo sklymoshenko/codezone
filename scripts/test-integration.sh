@@ -1,27 +1,23 @@
 #!/bin/bash
 
 # PostgreSQL Integration Test Runner
-# This script mirrors the CI environment for running PostgreSQL integration tests locally
 
-set -e  # Exit on any error
+set -e 
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Configuration
 CONTAINER_NAME="codezone-postgres-test"
 POSTGRES_VERSION="15"
 POSTGRES_PASSWORD="testpassword"
 POSTGRES_DB="testdb"
 POSTGRES_USER="testuser"
-POSTGRES_PORT="5432"
+POSTGRES_PORT="5433" # Changed from 5432 to 5433 to avoid conflicts with other services
 MAX_WAIT_TIME=30
 
-# Functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -54,7 +50,6 @@ check_docker() {
     log_success "Docker is available"
 }
 
-# Check if container exists and is healthy
 container_exists() {
     docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"
 }
@@ -71,7 +66,6 @@ container_healthy() {
     fi
 }
 
-# Smart container management - reuse if possible
 ensure_postgres_running() {
     if container_exists; then
         if container_running; then
@@ -96,7 +90,6 @@ ensure_postgres_running() {
         fi
     fi
     
-    # Create new container if none exists or existing one failed
     start_postgres
     wait_for_postgres
 }
@@ -134,7 +127,6 @@ cleanup_container() {
     fi
 }
 
-# More aggressive cleanup - only when explicitly requested
 cleanup_complete() {
     cleanup_container
     
