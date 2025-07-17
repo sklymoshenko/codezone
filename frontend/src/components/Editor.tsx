@@ -27,7 +27,7 @@ const showGoNotInstalledToast = () => {
 
 const showNodeNotInstalledToast = () => {
   showErrorToast({
-    title: 'Cant execute TypeScript code',
+    title: "Can't execute TypeScript code",
     description: "The internal JavaScript runner doesn't fully support ES2016+ features (arrow functions, template literals, etc.).\n\n" +
 			"Node.js is required as a fallback for modern JavaScript features.\n\n" +
 			"Please install Node.js to further execute this code.",
