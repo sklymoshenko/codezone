@@ -187,7 +187,10 @@ func (js *TypeScriptExecutor) executeWithNode(ctx context.Context, code string) 
 		result.ExitCode = 158
 		return result
 	}
-	defer tempFile.Close()
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempFile.Name()) // Clean up the temp file
+	}()
 
 	// Execute with Node.js
 	cmd := exec.CommandContext(ctx, "node", tempFile.Name())
