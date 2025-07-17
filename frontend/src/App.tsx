@@ -25,7 +25,7 @@ const App: Component = () => {
     <>
       <ColorModeScript storageType={storageManager.type} />
       <ColorModeProvider storageManager={storageManager}>
-        <div class="min-h-screen flex flex-col items-center justify-center bg-background text-foreground overflow-hidden">
+        <div class="min-h-screen flex flex-col items-center justify-center text-foreground overflow-hidden">
           <Main />
           <Toaster />
         </div>

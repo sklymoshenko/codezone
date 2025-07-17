@@ -9,10 +9,15 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+//go:embed appicon.png
+var icon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -20,15 +25,31 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "codezone",
-		Width:  1440,
-		Height: 768,
+		Title:     "Code Zone",
+		Width:     1440,
+		Height:    768,
+		MinWidth:  900,
+		MinHeight: 400,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
 		OnBeforeClose:    app.onBeforeClose,
+		Linux: &linux.Options{
+			Icon:        []byte(icon),
+			ProgramName: "codezone",
+		},
+		Mac: &mac.Options{
+			TitleBar: &mac.TitleBar{
+				FullSizeContent: true,
+			},
+			About: &mac.AboutInfo{
+				Title:   "Code Zone",
+				Message: "A desktop code playground for JavaScript/Typescript, Go, and Postgres/SQL.",
+				Icon:    []byte(icon),
+			},
+		},
 		Bind: []interface{}{
 			app,
 		},

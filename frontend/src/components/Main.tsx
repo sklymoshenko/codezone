@@ -91,7 +91,12 @@ const Main: Component = () => {
       </Show>
 
       {/* Language switcher in top-right corner */}
-      <div class="absolute top-11 right-1 z-50">
+      <div
+        class="absolute z-50 top-2 right-1"
+        classList={{
+          'top-4': env()?.platform === 'linux'
+        }}
+      >
         <LangSwitch
           currentLanguage={language()}
           onLanguageChange={handleLanguageChange}
@@ -102,7 +107,10 @@ const Main: Component = () => {
 
       <div
         class={`flex-grow`}
-        style={{ 'max-height': `calc(100vh - ${TITLE_BAR_HEIGHT}px)` }}
+        style={{
+          'max-height':
+            env()?.platform === 'linux' ? '100vh' : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
+        }}
       >
         <Resizable
           orientation="horizontal"

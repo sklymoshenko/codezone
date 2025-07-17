@@ -33,7 +33,7 @@ const Output = (props: OutputProps) => {
   }
 
   return (
-    <div class="w-full h-full flex flex-col bg-background">
+    <div class="w-full h-full flex flex-col">
       <div class="flex-1 overflow-auto font-mono text-base leading-normal">
         <Show when={shouldShowTable()}>
           <SQLTable
