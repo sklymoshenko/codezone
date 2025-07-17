@@ -25,6 +25,18 @@ const showGoNotInstalledToast = () => {
   })
 }
 
+const showNodeNotInstalledToast = () => {
+  showErrorToast({
+    title: "Can't execute TypeScript code",
+    description: "The internal JavaScript runner doesn't fully support ES2016+ features (arrow functions, template literals, etc.).\n\n" +
+			"Node.js is required as a fallback for modern JavaScript features.\n\n" +
+			"Please install Node.js to further execute this code.",
+    actionLabel: 'Download Node.js',
+    actionUrl: 'https://nodejs.org/en/download/', 
+    duration: 8000
+  })
+}
+
 const defaultCode: Record<Language, string> = {
   typescript:
     '// TypeScript example\n\nfunction greet(name: string): string {\n  return `Hello, ${name}!`\n}\n\nconsole.log(greet("World"))\n',
@@ -307,6 +319,11 @@ const Editor: Component<EditorProps> = props => {
       if (!result.error && result.exitCode === 150 && lang === 'go') {
         showGoNotInstalledToast()
         // Don't show output for Go not installed error
+        return
+      }
+
+      if (!result.error && result.exitCode === 160 && lang === 'typescript') {
+        showNodeNotInstalledToast()
         return
       }
 

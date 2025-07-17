@@ -5,10 +5,21 @@
 # ====================================================================================
 
 ## build-linux: Builds the distributable .deb package for Linux.
-build-linux:
+build-lin:
 	@echo "--> Running Linux build script..."
 	@chmod +x ./buildScript/buildDeb.sh
 	@./buildScript/buildDeb.sh
+
+## build-windows: Builds the distributable .exe package for Windows.
+build-win:
+	@echo "--> Running Windows build script..."
+	@powershell -ExecutionPolicy Bypass -File ./buildScript/buildWin.ps1
+
+## build-mac: Builds the distributable .app package for macOS.
+build-mac:
+	@echo "--> Running macOS build script..."
+	@chmod +x ./buildScript/buildMac.sh
+	@./buildScript/buildMac.sh
 
 # ====================================================================================
 # Utility Commands

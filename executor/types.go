@@ -24,6 +24,7 @@ const (
 	ExitCodePostgresNotAvailable = 151 // PostgreSQL executor not available
 	ExitCodePostgresConnFailed   = 152 // PostgreSQL connection failed
 	ExitCodePostgresQueryError   = 153 // PostgreSQL query execution error
+	ExitCodeNodeNotAvailable     = 160 // Node.js not available
 )
 
 // ExecutionConfig holds configuration for code execution

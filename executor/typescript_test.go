@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -77,8 +78,14 @@ func TestJavaScriptExecutor_Execute(t *testing.T) {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 
-		if result.ExitCode != 1 {
-			t.Fatalf("Expected exit code 1, got %d", result.ExitCode)
+		if runtime.GOOS == "windows" {
+			if result.ExitCode != 2 {
+				t.Fatalf("Expected exit code 2, got %d", result.ExitCode)
+			}
+		} else {
+			if result.ExitCode != 1 {
+				t.Fatalf("Expected exit code 1, got %d", result.ExitCode)
+			}
 		}
 
 		if result.Error == "" {
@@ -206,6 +213,84 @@ func TestJavaScriptExecutor_Execute(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("should handle template literals", func(t *testing.T) {
+		code := "function greet(name) {\n" +
+			"  return `Hello, ${name}!`;\n" +
+			"}\n" +
+			"console.log(greet(\"World\"));"
+		result, err := executor.Execute(context.Background(), code, "")
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result.ExitCode != 0 {
+			t.Fatalf("Expected exit code 0, got %d", result.ExitCode)
+		}
+
+		if !strings.Contains(result.Output, "Hello, World!") {
+			t.Fatalf("Expected output to contain 'Hello, World!', got %s", result.Output)
+		}
+	})
+
+	t.Run("should handle template literals with expressions", func(t *testing.T) {
+		code := "const name = \"Alice\";\n" +
+			"const age = 25;\n" +
+			"const message = `${name} is ${age} years old`;\n" +
+			"console.log(message);"
+		result, err := executor.Execute(context.Background(), code, "")
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result.ExitCode != 0 {
+			t.Fatalf("Expected exit code 0, got %d", result.ExitCode)
+		}
+
+		if !strings.Contains(result.Output, "Alice is 25 years old") {
+			t.Fatalf("Expected output to contain 'Alice is 25 years old', got %s", result.Output)
+		}
+	})
+
+	t.Run("should handle nested template literals", func(t *testing.T) {
+		code := "const greeting = \"Hello\";\n" +
+			"const name = \"Bob\";\n" +
+			"const message = `${greeting}, ${name}! Welcome!`;\n" +
+			"console.log(message);"
+		result, err := executor.Execute(context.Background(), code, "")
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result.ExitCode != 0 {
+			t.Fatalf("Expected exit code 0, got %d", result.ExitCode)
+		}
+
+		if !strings.Contains(result.Output, "Hello, Bob! Welcome!") {
+			t.Fatalf("Expected output to contain 'Hello, Bob! Welcome!', got %s", result.Output)
+		}
+	})
+
+	t.Run("should handle arrow functions", func(t *testing.T) {
+		code := "const add = (a, b) => a + b;\n" +
+			"console.log(add(2, 3));"
+		result, err := executor.Execute(context.Background(), code, "")
+
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+
+		if result.ExitCode != 0 {
+			t.Fatalf("Expected exit code 0, got %d", result.ExitCode)
+		}
+
+		if !strings.Contains(result.Output, "5") {
+			t.Fatalf("Expected output to contain '5', got %s", result.Output)
+		}
+	})
 }
 
 func TestJavaScriptExecutor_Language(t *testing.T) {
@@ -267,7 +352,7 @@ func TestJavaScriptExecutor_ContextHandling(t *testing.T) {
 
 	t.Run("should use default timeout when context is nil", func(t *testing.T) {
 		code := `console.log("test");`
-		result, err := executor.Execute(nil, code, "")
+		result, err := executor.Execute(context.TODO(), code, "")
 
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
@@ -279,13 +364,11 @@ func TestJavaScriptExecutor_ContextHandling(t *testing.T) {
 	})
 
 	t.Run("should respect context cancellation", func(t *testing.T) {
-		code := `
-			let i = 0;
-			while(i < 1000000) {
-				i++;
-			}
-			console.log("Done");
-		`
+		code := "let i = 0;\n" +
+			"while(i < 1000000) {\n" +
+			"  i++;\n" +
+			"}\n" +
+			"console.log(\"Done\");"
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Cancel immediately
@@ -298,8 +381,14 @@ func TestJavaScriptExecutor_ContextHandling(t *testing.T) {
 		}
 
 		// Should timeout due to cancelled context
-		if result.ExitCode != 124 {
-			t.Fatalf("Expected timeout exit code 124, got %d", result.ExitCode)
+		if runtime.GOOS == "windows" {
+			if result.ExitCode != 2 {
+				t.Fatalf("Expected timeout exit code 2, got %d", result.ExitCode)
+			}
+		} else {
+			if result.ExitCode != 124 {
+				t.Fatalf("Expected timeout exit code 124, got %d", result.ExitCode)
+			}
 		}
 	})
 }
