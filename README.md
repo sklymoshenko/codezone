@@ -49,6 +49,8 @@ _Execute queries with formatted results_
 - TypeScript compilation
 - Real-time error checking
 
+> **Windows Users**: TypeScript support on Windows has limitations with modern ES2016+ features (arrow functions, template literals, const, let, etc.). For full ES2016+ support, please install Node.js from [nodejs.org](https://nodejs.org/). The app will automatically use Node.js when available, otherwise it will use the built-in JavaScript engine with limited feature support.
+
 #### Go
 
 - Full Go standard library
@@ -73,10 +75,15 @@ _Execute queries with formatted results_
 
 Code Zone is built with:
 
-- **Backend**: Go with custom executors for each language
-- **Frontend**: SolidJS with TypeScript
-- **Soldi UI**: Custom components with dark theme
-- **Framework**: Wails for desktop app capabilities
+- **Backend**: [Go](https://golang.org/) with custom executors for each language
+- **Frontend**: [SolidJS](https://www.solidjs.com/) with [TypeScript](https://www.typescriptlang.org/)
+- **UI**: [Solid UI](https://solid-ui.com/) custom components with dark theme
+- **Framework**: [Wails](https://wails.io/) for desktop app capabilities
+- **Key Libraries**: 
+  - [V8](https://github.com/v8/v8) (JavaScript engine for Unix)
+  - [Otto](https://github.com/robertkrimen/otto) (JavaScript engine for Windows)
+  - [highlight.js](https://github.com/highlightjs/highlight.js) (syntax highlighting)
+  - [esbuild](https://github.com/evanw/esbuild) (TypeScript compilation)
 
 ## 🚀 Performance
 
