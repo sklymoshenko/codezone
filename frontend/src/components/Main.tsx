@@ -109,7 +109,7 @@ const Main: Component = () => {
         class={`flex-grow`}
         style={{
           'max-height':
-            env()?.platform === 'linux' ? '100vh' : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
+            env()?.platform !== 'linux' ? '100vh' : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
         }}
       >
         <Resizable
