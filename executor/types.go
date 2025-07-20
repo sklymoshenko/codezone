@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// Language represents supported programming languages
 type Language string
 
 const (
@@ -18,7 +17,6 @@ const (
 	PostgreSQL Language = "postgres"
 )
 
-// Special exit codes for different error types
 const (
 	ExitCodeGoNotInstalled       = 150 // Go compiler not found/installed
 	ExitCodePostgresNotAvailable = 151 // PostgreSQL executor not available
@@ -27,7 +25,6 @@ const (
 	ExitCodeNodeNotAvailable     = 160 // Node.js not available
 )
 
-// ExecutionConfig holds configuration for code execution
 type ExecutionConfig struct {
 	Code           string            `json:"code"`
 	Language       Language          `json:"language"`
@@ -36,7 +33,6 @@ type ExecutionConfig struct {
 	PostgreSQLConn *PostgreSQLConfig `json:"postgresqlConn,omitempty"`
 }
 
-// ExecutionResult represents the result of code execution
 type ExecutionResult struct {
 	Output         string          `json:"output"`
 	Error          string          `json:"error"`
@@ -47,7 +43,6 @@ type ExecutionResult struct {
 	SQLResult      *SQLQueryResult `json:"sqlResult,omitempty"`
 }
 
-// Executor interface for different language executors
 type Executor interface {
 	Execute(ctx context.Context, code string, input string) (*ExecutionResult, error)
 	Language() Language
@@ -55,14 +50,12 @@ type Executor interface {
 	Cleanup() error
 }
 
-// ExecutorOptions holds options for creating executors
 type ExecutorOptions struct {
 	Timeout    time.Duration
 	MemoryMB   int
 	MaxOutputs int
 }
 
-// DefaultExecutorOptions returns sensible default options
 func DefaultExecutorOptions() ExecutorOptions {
 	return ExecutorOptions{
 		Timeout:    10 * time.Second,
@@ -81,9 +74,9 @@ type PostgreSQLConfig struct {
 }
 
 type SQLQueryResult struct {
-	QueryType     string          `json:"queryType"`    // SELECT, INSERT, UPDATE, etc.
-	Columns       []string        `json:"columns"`      // Column names
-	Rows          [][]interface{} `json:"rows"`         // Data rows
-	RowsAffected  int64           `json:"rowsAffected"` // For non-SELECT queries
+	QueryType     string          `json:"queryType"`
+	Columns       []string        `json:"columns"`
+	Rows          [][]interface{} `json:"rows"`
+	RowsAffected  int64           `json:"rowsAffected"`
 	ExecutionTime time.Duration   `json:"executionTime"`
 }

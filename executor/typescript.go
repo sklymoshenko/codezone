@@ -17,31 +17,26 @@ import (
 	"rogchap.com/v8go"
 )
 
-// JavaScriptExecutor implements JavaScript execution using V8
 type TypeScriptExecutor struct {
 	options ExecutorOptions
-	mu      sync.Mutex // Protect V8 operations
+	mu      sync.Mutex
 }
 
-// NewJavaScriptExecutor creates a new V8-based executor
 func NewTypeScriptExecutor(opts ExecutorOptions) *TypeScriptExecutor {
 	return &TypeScriptExecutor{
 		options: opts,
 	}
 }
 
-// Execute runs JavaScript or TypeScript code using V8
 func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input string) (*ExecutionResult, error) {
 	start := time.Now()
 
-	// Add a default timeout if context doesn't have one
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 	}
 
-	// Use mutex to ensure thread safety
 	js.mu.Lock()
 	defer js.mu.Unlock()
 
@@ -49,7 +44,6 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 		Language: TypeScript,
 	}
 
-	// --- Always transpile with esbuild TypeScript loader ---
 	transpileResult := api.Transform(code, api.TransformOptions{
 		Loader:       api.LoaderTS,
 		Format:       api.FormatDefault,
@@ -69,9 +63,7 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 		return result, nil
 	}
 	code = string(transpileResult.Code)
-	// --- End transpile ---
 
-	// Create a new isolate and context for each execution
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 
@@ -79,7 +71,6 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 	ctx_v8 := v8go.NewContext(iso, global)
 	defer ctx_v8.Close()
 
-	// Set up console logging
 	outputs := make([]string, 0, 10)
 	errors := make([]string, 0, 5)
 	if err := js.setupConsole(ctx_v8, &outputs, &errors); err != nil {
@@ -88,7 +79,6 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 		return result, nil
 	}
 
-	// Execute with timeout using a channel
 	done := make(chan struct{})
 	var execErr error
 	var value *v8go.Value
@@ -104,15 +94,12 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 		value, execErr = ctx_v8.RunScript(code, "user_code.js")
 	}()
 
-	// Wait for execution or timeout
 	select {
 	case <-done:
-		// Execution completed
 		if execErr != nil {
 			result.Error = execErr.Error()
 			result.ExitCode = 1
 		} else {
-			// Include the final expression result if it's meaningful
 			if value != nil && !value.IsUndefined() && !value.IsNull() {
 				outputs = append(outputs, value.String())
 			}
@@ -128,7 +115,6 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 		}
 
 	case <-ctx.Done():
-		// Timeout occurred
 		result.Error = "Execution timed out"
 		result.ExitCode = 124
 	}
@@ -139,12 +125,9 @@ func (js *TypeScriptExecutor) Execute(ctx context.Context, code string, input st
 	return result, nil
 }
 
-// setupConsole sets up console.log, console.error, etc.
 func (js *TypeScriptExecutor) setupConsole(ctx *v8go.Context, outputs *[]string, errors *[]string) error {
-	// Create console object
 	console := v8go.NewObjectTemplate(ctx.Isolate())
 
-	// console.log
 	logFn := v8go.NewFunctionTemplate(ctx.Isolate(), func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		args := make([]string, len(info.Args()))
 		for i := 0; i < len(info.Args()); i++ {
@@ -176,9 +159,8 @@ func (js *TypeScriptExecutor) setupConsole(ctx *v8go.Context, outputs *[]string,
 		return v8go.Undefined(ctx.Isolate())
 	})
 	console.Set("warn", warnFn)
-	console.Set("info", warnFn) // info same as warn
+	console.Set("info", warnFn)
 
-	// Set console in global scope
 	global := ctx.Global()
 	consoleObj, err := console.NewInstance(ctx)
 	if err != nil {
@@ -190,10 +172,8 @@ func (js *TypeScriptExecutor) setupConsole(ctx *v8go.Context, outputs *[]string,
 
 func (js *TypeScriptExecutor) Language() Language { return TypeScript }
 func (js *TypeScriptExecutor) IsAvailable() bool {
-	// V8 is embedded, so it's always available once built
 	return true
 }
 func (js *TypeScriptExecutor) Cleanup() error {
-	// No cleanup needed for V8
 	return nil
 }
