@@ -48,10 +48,35 @@ command -v create-dmg >/dev/null 2>&1 || { echo >&2 "Error: create-dmg not found
 
 echo "Prerequisites validated."
 
-# Sign the application bundle
-echo "Signing the application bundle..."
-codesign --force --deep --sign "${SIGNING_IDENTITY}" --timestamp "${WAILS_APP_PATH}"
-echo "App bundle signed."
+# Sign the application bundle with hardened runtime
+echo "Signing the application bundle with hardened runtime..."
+codesign --force --deep --sign "${SIGNING_IDENTITY}" --timestamp --options runtime "${WAILS_APP_PATH}"
+echo "App bundle signed with hardened runtime."
+
+# Create a pkg for notarization
+# echo "Creating pkg for notarization..."
+# PKG_PATH="./build/${APP_NAME}.pkg"
+# pkgbuild --component "${WAILS_APP_PATH}" --install-location "/Applications" "${PKG_PATH}"
+
+# # Sign the pkg with installer certificate
+# echo "Signing the pkg..."
+# INSTALLER_IDENTITY="Developer ID Installer: ${SIGNING_IDENTITY_LONG}"
+# productsign --sign "${INSTALLER_IDENTITY}" "${PKG_PATH}" "${PKG_PATH}.signed"
+# mv "${PKG_PATH}.signed" "${PKG_PATH}"
+
+# # Notarize the pkg
+# echo "Notarizing the pkg..."
+# xcrun notarytool submit "${PKG_PATH}" \
+#   --wait \
+#   --apple-id "${NOTARY_USERNAME}" \
+#   --password "${NOTARY_PASS}" \
+#   --team-id "${SIGNING_IDENTITY_SHORT}"
+# echo "Pkg notarized."
+
+# # Staple the notarization ticket to the app
+# echo "Stapling notarization ticket..."
+# xcrun stapler staple "${WAILS_APP_PATH}"
+# echo "Notarization ticket stapled."
 
 # --- Step 3: Create Professional DMG with create-dmg ---
 echo "Creating professional DMG file..."
