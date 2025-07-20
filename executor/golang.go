@@ -64,7 +64,7 @@ func (g *GoExecutor) Execute(ctx context.Context, code string, input string) (*E
 		return result, nil
 	}
 
-	output, stderr, err := ExecCommandContext(ctx, []string{"go", "run", tempFile}, input, tempFile, tempDir)
+	output, stderr, err := ExecCommandContext(ctx, []string{"go", "run", tempFile}, input, tempDir)
 
 	result.Output = strings.TrimSpace(output)
 
