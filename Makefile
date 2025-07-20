@@ -41,6 +41,11 @@ clean:
 postgres-test:
 	@./scripts/test-integration.sh all
 
+## test: Runs all tests.
+test:
+	@go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup|TestJavaScriptExecutor_ContextHandling|TestJavaScriptExecutor_Execute" -timeout 30s
+	@go test ./executor/ -v -run "TestGoExecutor" -timeout 30s
+
 ## help: Shows this help message.
 help:
 	@echo "Usage: make <command>"

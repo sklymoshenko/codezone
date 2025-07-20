@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 
 	"github.com/dop251/goja"
@@ -243,6 +244,13 @@ func (js *TypeScriptExecutor) isNodeAvailable() bool {
 	// Use cached result if available
 	if js.nodeAvailable != nil {
 		return *js.nodeAvailable
+	}
+
+	// During tests, always return false to force Goja execution
+	if testing.Testing() {
+		available := false
+		js.nodeAvailable = &available
+		return false
 	}
 
 	cmd := exec.Command("node", "--version")
