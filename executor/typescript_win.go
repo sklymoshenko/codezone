@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/dop251/goja"
@@ -21,8 +22,9 @@ import (
 
 // TypeScriptExecutor implements JavaScript execution
 type TypeScriptExecutor struct {
-	options ExecutorOptions
-	mu      sync.Mutex // Protect Goja operations
+	options       ExecutorOptions
+	mu            sync.Mutex // Protect Goja operations
+	nodeAvailable *bool      // Cache for Node.js availability check
 }
 
 // NewTypeScriptExecutor creates a new TypeScript executor
@@ -194,6 +196,11 @@ func (js *TypeScriptExecutor) executeWithNode(ctx context.Context, code string) 
 
 	// Execute with Node.js
 	cmd := exec.CommandContext(ctx, "node", tempFile.Name())
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
+
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -233,8 +240,20 @@ func (js *TypeScriptExecutor) isGojaUnsupportedFeatureError(errorMsg string) boo
 
 // isNodeAvailable checks if Node.js is installed and available
 func (js *TypeScriptExecutor) isNodeAvailable() bool {
+	// Use cached result if available
+	if js.nodeAvailable != nil {
+		return *js.nodeAvailable
+	}
+
 	cmd := exec.Command("node", "--version")
-	return cmd.Run() == nil
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow: true,
+	}
+
+	available := cmd.Run() == nil
+	js.nodeAvailable = &available
+	return available
 }
 
 // createTempFile creates a temporary file with the given code

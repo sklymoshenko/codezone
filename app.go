@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"codezone-wails/executor"
@@ -70,6 +72,14 @@ func (a *App) Greet(name string) string {
 
 func (a *App) GetGoVersion() string {
 	cmd := exec.Command("go", "version")
+
+	// Hide the command prompt window on Windows
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+	}
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "Error getting Go version"

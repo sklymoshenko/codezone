@@ -360,7 +360,7 @@ const Editor: Component<EditorProps> = props => {
       }
     }
     void execute(codeToExecute, lang)
-  }, 700)
+  }, 500)
 
   // Simplified highlighting effect (no validation logic needed here)
   createEffect(() => {

@@ -9,8 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -75,6 +77,14 @@ func (g *GoExecutor) Execute(ctx context.Context, code string, input string) (*E
 
 	// Execute Go code
 	cmd := exec.CommandContext(ctx, "go", "run", tempFile)
+
+	// Hide the command prompt window on Windows
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow: true,
+		}
+	}
+
 	cmd.Dir = tempDir
 
 	// Set up input if provided
