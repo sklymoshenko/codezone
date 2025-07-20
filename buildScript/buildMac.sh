@@ -33,7 +33,7 @@ APP_NAME=$(basename "$WAILS_APP_PATH" .app)
 
 # Get App Version from the app's Info.plist for DMG naming
 APP_VERSION=$(defaults read "$WAILS_APP_PATH/Contents/Info.plist" CFBundleShortVersionString || echo "1.0.0")
-DMG_FINAL_PATH="./dist/codezone-${APP_VERSION}_arm64.dmg"
+DMG_FINAL_PATH="./codezone-${APP_VERSION}_arm64.dmg"
 
 echo "--- Starting Signing and DMG Creation ---"
 
@@ -47,16 +47,6 @@ command -v codesign >/dev/null 2>&1 || { echo >&2 "Error: codesign not found."; 
 command -v create-dmg >/dev/null 2>&1 || { echo >&2 "Error: create-dmg not found. Install with: brew install create-dmg"; exit 1; }
 
 echo "Prerequisites validated."
-
-# --- Step 2: Clean and Sign the App Bundle in Place ---
-echo "Cleaning and signing the app bundle in place..."
-
-# Clean up any extended attributes
-xattr -cr "$WAILS_APP_PATH"
-
-# Set correct permissions
-chmod -R 755 "$WAILS_APP_PATH"
-find "$WAILS_APP_PATH" -type f -exec chmod 644 {} \;
 
 # Sign the application bundle
 echo "Signing the application bundle..."
