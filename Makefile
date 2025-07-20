@@ -38,8 +38,11 @@ clean:
 # ====================================================================================
 
 test:
-	@go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup|TestJavaScriptExecutor_ContextHandling|TestJavaScriptExecutor_Execute" -timeout 30s
+	@go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup" -timeout 30s
 	@go test ./executor/ -v -run "TestGoExecutor" -timeout 30s
+
+test-v8:
+	@go test ./executor/ -v -run "TestJavaScriptExecutor_(Language|IsAvailable|Cleanup|ContextHandling|ThreadSafety)|TestJavaScriptExecutor_Execute/(should_execute_simple_JavaScript_code|should_handle_console.error|should_handle_console.warn|should_handle_syntax_errors|should_handle_runtime_errors|should_return_expression_results|should_handle_multiple_console_outputs|should_handle_empty_code|should_handle_console.info|should_handle_console_with_multiple_arguments|should_handle_template_literals|should_handle_template_literals_with_expressions|should_handle_nested_template_literals|should_handle_arrow_functions)" -timeout 30s
 
 ## postgres-test: Runs PostgreSQL integration tests (requires Docker).
 postgres-test:

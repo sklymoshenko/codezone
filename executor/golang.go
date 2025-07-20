@@ -9,10 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -66,34 +64,16 @@ func (g *GoExecutor) Execute(ctx context.Context, code string, input string) (*E
 		return result, nil
 	}
 
-	cmd := exec.CommandContext(ctx, "go", "run", tempFile)
+	output, stderr, err := ExecCommandContext(ctx, []string{"go", "run", tempFile}, input, tempFile, tempDir)
 
-	if runtime.GOOS == "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-	}
-
-	cmd.Dir = tempDir
-
-	if input != "" {
-		cmd.Stdin = strings.NewReader(input)
-	}
-
-	var stdout, stderr strings.Builder
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
-
-	result.Output = strings.TrimSpace(stdout.String())
+	result.Output = strings.TrimSpace(output)
 
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			result.Error = "Execution timed out"
 			result.ExitCode = 124
 		} else {
-			stderrText := strings.TrimSpace(stderr.String())
+			stderrText := strings.TrimSpace(stderr)
 			if stderrText != "" {
 				result.Error = g.cleanGoError(stderrText)
 			} else {
