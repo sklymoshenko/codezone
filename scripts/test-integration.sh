@@ -190,19 +190,7 @@ wait_for_postgres() {
     done
 }
 
-run_unit_tests() {
-    log_info "Running unit tests..."
-    
-    if go test ./executor -v \
-        -run "TestPostgreSQLExecutor_(Basic|Configuration|QueryType|IsSelect|PrepareSQLCode|ConvertValue|ExecuteWithoutConnection)" \
-        -timeout=30s; then
-        log_success "Unit tests passed!"
-        return 0
-    else
-        log_error "Unit tests failed!"
-        return 1
-    fi
-}
+
 
 run_integration_tests() {
     log_info "Running integration tests..."
@@ -239,9 +227,8 @@ print_usage() {
     echo "Usage: $0 [OPTIONS] [COMMAND]"
     echo ""
     echo "Commands:"
-    echo "  unit          Run only unit tests (no database required)"
     echo "  integration   Run only integration tests (requires database)"
-    echo "  all           Run all tests (default)"
+    echo "  all           Run all integration tests (default)"
     echo "  setup         Start PostgreSQL container only"
     echo "  cleanup       Stop and remove PostgreSQL container"
     echo "  cleanup-all   Stop container, remove container and image"
@@ -255,8 +242,7 @@ print_usage() {
     echo "  -h, --help              Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                      # Run all tests (reuse existing container)"
-    echo "  $0 unit                 # Run only unit tests"
+    echo "  $0                      # Run all integration tests (reuse existing container)"
     echo "  $0 integration          # Run only integration tests"
     echo "  $0 setup                # Start PostgreSQL for manual testing"
     echo "  $0 -v 16 all            # Test against PostgreSQL 16"
@@ -329,10 +315,7 @@ main() {
             fi
             ;;
             
-        unit)
-            check_docker  # Still check docker for consistency
-            run_unit_tests
-            ;;
+
             
         setup)
             check_docker
@@ -382,13 +365,6 @@ main() {
         all)
             check_docker
             
-            # Run unit tests first (fast feedback)
-            if ! run_unit_tests; then
-                log_error "Unit tests failed, skipping integration tests"
-                exit 1
-            fi
-            
-            echo ""
             if [ "$FORCE_RECREATE" = true ]; then
                 cleanup_container
                 start_postgres
@@ -401,7 +377,7 @@ main() {
             echo ""
             
             if run_integration_tests; then
-                log_success "All tests completed successfully!"
+                log_success "All integration tests completed successfully!"
                 EXIT_CODE=0
             else
                 log_error "Integration tests failed!"

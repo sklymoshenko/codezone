@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"testing"
 	"time"
 
 	"github.com/dop251/goja"
@@ -246,8 +245,8 @@ func (js *TypeScriptExecutor) isNodeAvailable() bool {
 		return *js.nodeAvailable
 	}
 
-	// During tests, always return false to force Goja execution
-	if testing.Testing() {
+	// In test builds, always return false to force Goja execution
+	if isTestBuild() {
 		available := false
 		js.nodeAvailable = &available
 		return false
@@ -279,6 +278,14 @@ func createTempFile(code string) (*os.File, error) {
 	}
 
 	return tempFile, nil
+}
+
+// isTestBuild checks if this is a test build
+func isTestBuild() bool {
+	// Check if we're running in a test environment
+	return os.Getenv("CODEZONE_TEST_MODE") == "true" ||
+		strings.Contains(os.Args[0], "test") ||
+		strings.Contains(os.Args[0], "_test")
 }
 
 // setupConsole sets up console.log, console.error, etc.
