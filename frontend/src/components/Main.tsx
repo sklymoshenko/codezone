@@ -94,7 +94,7 @@ const Main: Component = () => {
       <div
         class="absolute z-50 top-2 right-1"
         classList={{
-          'top-4': env()?.platform === 'linux'
+          'top-8': env()?.platform === 'linux'
         }}
       >
         <LangSwitch

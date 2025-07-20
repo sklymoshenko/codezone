@@ -7,10 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
-	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"codezone-wails/executor"
@@ -71,20 +68,11 @@ func (a *App) Greet(name string) string {
 }
 
 func (a *App) GetGoVersion() string {
-	cmd := exec.Command("go", "version")
-
-	// Hide the command prompt window on Windows
-	if runtime.GOOS == "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-	}
-
-	output, err := cmd.Output()
+	output, err := executor.ExecCommand([]string{"go", "version"})
 	if err != nil {
 		return "Error getting Go version"
 	}
-	version := strings.TrimSpace(string(output))
+	version := strings.TrimSpace(output)
 	parts := strings.Fields(version)
 	if len(parts) >= 3 {
 		// Expected format: "go version go1.22.4 linux/amd64"
