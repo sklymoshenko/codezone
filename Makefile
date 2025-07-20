@@ -37,9 +37,20 @@ clean:
 # Test Commands
 # ====================================================================================
 
+test:
+	@go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor_Language|TestJavaScriptExecutor_IsAvailable|TestJavaScriptExecutor_Cleanup|TestJavaScriptExecutor_ContextHandling|TestJavaScriptExecutor_Execute" -timeout 30s
+	@go test ./executor/ -v -run "TestGoExecutor" -timeout 30s
+
 ## postgres-test: Runs PostgreSQL integration tests (requires Docker).
 postgres-test:
 	@./scripts/test-integration.sh all
+
+postgres-test-win:
+	@powershell -ExecutionPolicy Bypass -File ./scripts/test-integration.ps1 all
+
+test-win:
+	@set CODEZONE_TEST_MODE=true && go test ./executor/ -v -run "TestFormatDuration|TestJavaScriptExecutor|TestGoExecutor" -timeout 30s
+
 
 ## help: Shows this help message.
 help:

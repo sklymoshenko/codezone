@@ -18,7 +18,7 @@ hljs.registerLanguage('typescript', typescript)
 const showGoNotInstalledToast = () => {
   showErrorToast({
     title: 'Golang Not Installed',
-    description: 'Go compiler is not installed. Please install Golang to run Go code.',
+    description: 'Go compiler is not installed or not in the PATH. Please install Golang and add it to the PATH to run Go code.',
     actionLabel: 'Download Golang',
     actionUrl: 'https://golang.org/dl/',
     duration: 8000
@@ -360,7 +360,7 @@ const Editor: Component<EditorProps> = props => {
       }
     }
     void execute(codeToExecute, lang)
-  }, 700)
+  }, 500)
 
   // Simplified highlighting effect (no validation logic needed here)
   createEffect(() => {

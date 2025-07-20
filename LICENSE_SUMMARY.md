@@ -20,6 +20,7 @@ CodeZone is licensed under the **MIT License**, with proper attribution to all t
 | ------------------------ | ------------ | ------------------------ | ----------------------------- |
 | **V8 JavaScript Engine** | BSD-3-Clause | Google Inc. & V8 authors | JavaScript execution via v8go |
 | **v8go**                 | BSD-3-Clause | Roger Peppe              | Go bindings for V8            |
+| **Goja**                 | MIT          | Dmitry Vyukov            | JavaScript engine for Windows |
 | **Wails**                | MIT          | Lea Anthony              | Desktop app framework         |
 
 ### Frontend Dependencies
@@ -38,6 +39,7 @@ CodeZone is licensed under the **MIT License**, with proper attribution to all t
 - [x] **Main LICENSE file** with full MIT text
 - [x] **V8 BSD-3-Clause attribution** included
 - [x] **v8go BSD-3-Clause attribution** included
+- [x] **Goja MIT attribution** included
 - [x] **Wails MIT attribution** included
 - [x] **Copyright notices** preserved for all dependencies
 - [x] **Source file headers** added to key files

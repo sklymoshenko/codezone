@@ -381,14 +381,8 @@ func TestJavaScriptExecutor_ContextHandling(t *testing.T) {
 		}
 
 		// Should timeout due to cancelled context
-		if runtime.GOOS == "windows" {
-			if result.ExitCode != 2 {
-				t.Fatalf("Expected timeout exit code 2, got %d", result.ExitCode)
-			}
-		} else {
-			if result.ExitCode != 124 {
-				t.Fatalf("Expected timeout exit code 124, got %d", result.ExitCode)
-			}
+		if result.ExitCode != 124 {
+			t.Fatalf("Expected timeout exit code 124, got %d", result.ExitCode)
 		}
 	})
 }

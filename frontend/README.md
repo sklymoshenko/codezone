@@ -16,6 +16,8 @@ Code-executor is a powerful and intuitive desktop application for running code s
 -   **[TailwindCSS](https://tailwindcss.com/)**: Styling
 -   **[Highlight.js](https://highlightjs.org/)**: Syntax highlighting
 -   **[Bun](https://bun.sh/)**: JavaScript runtime and toolkit
+-   **[Goja](https://github.com/dop251/goja)**: JavaScript engine for Windows
+-   **[V8](https://github.com/v8/v8)**: JavaScript engine for Unix systems
 
 ## Development
 

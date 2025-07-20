@@ -9,21 +9,18 @@ import (
 	"sync"
 )
 
-// ExecutionManager manages multiple language executors
 type ExecutionManager struct {
 	executors map[Language]Executor
 	options   ExecutorOptions
 	mu        sync.RWMutex
 }
 
-// NewExecutionManager creates a new execution manager
 func NewExecutionManager(opts ExecutorOptions) *ExecutionManager {
 	manager := &ExecutionManager{
 		executors: make(map[Language]Executor),
 		options:   opts,
 	}
 
-	// Initialize all supported executors
 	manager.executors[TypeScript] = NewTypeScriptExecutor(opts)
 	manager.executors[Go] = NewGoExecutor(opts)
 	manager.executors[PostgreSQL] = NewPostgreSQLExecutor(opts)
@@ -31,7 +28,6 @@ func NewExecutionManager(opts ExecutorOptions) *ExecutionManager {
 	return manager
 }
 
-// Execute runs code in the specified language
 func (em *ExecutionManager) Execute(config ExecutionConfig) (*ExecutionResult, error) {
 	ctx := context.Background()
 	var cancel context.CancelFunc
@@ -48,7 +44,6 @@ func (em *ExecutionManager) Execute(config ExecutionConfig) (*ExecutionResult, e
 		return nil, fmt.Errorf("executor for %s is not available", config.Language)
 	}
 
-	// Handle PostgreSQL configuration
 	if config.Language == PostgreSQL {
 		if pgExecutor, ok := executor.(*PostgreSQLExecutor); ok {
 			if config.PostgreSQLConn != nil {
@@ -64,7 +59,6 @@ func (em *ExecutionManager) Execute(config ExecutionConfig) (*ExecutionResult, e
 	return executor.Execute(ctx, config.Code, config.Input)
 }
 
-// GetSupportedLanguages returns a list of all supported languages.
 func (em *ExecutionManager) GetSupportedLanguages() []Language {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
@@ -75,14 +69,12 @@ func (em *ExecutionManager) GetSupportedLanguages() []Language {
 	return languages
 }
 
-// GetExecutor returns the executor for a specific language
 func (em *ExecutionManager) GetExecutor(lang Language) Executor {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 	return em.executors[lang]
 }
 
-// Cleanup releases all executor resources
 func (em *ExecutionManager) Cleanup() {
 	em.mu.Lock()
 	defer em.mu.Unlock()
@@ -91,7 +83,6 @@ func (em *ExecutionManager) Cleanup() {
 	}
 }
 
-// RefreshExecutor safely recreates an executor for a clean state.
 func (em *ExecutionManager) RefreshExecutor(lang Language) error {
 	em.mu.Lock()
 	defer em.mu.Unlock()
@@ -100,7 +91,6 @@ func (em *ExecutionManager) RefreshExecutor(lang Language) error {
 		oldExecutor.Cleanup()
 	}
 
-	// Re-create the specific executor
 	switch lang {
 	case TypeScript:
 		em.executors[TypeScript] = NewTypeScriptExecutor(em.options)
